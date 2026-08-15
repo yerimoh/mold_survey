@@ -1,9 +1,9 @@
-/* mold_survey — single scrolling page version
- * - all sections on one page, answered top to bottom; one submit button
- * - ko/en toggle in the header (answers survive language switch; ?lang=ko|en forces it)
- * - card order randomized per visitor + logged
- * - free-recall answers freeze once the respondent touches the card section (soft no-priming guard)
- * - conditional display: review_count=0 hides "acted" questions; no code exposure hides S5B
+/* mold_survey — sectioned wizard with a left stepper
+ * - one section per page ("다음/뒤로"), card section paginated card-by-card (1/8 …)
+ * - left sidebar stepper shows all sections + where you are; completed sections are clickable
+ * - free-recall section becomes read-only once you move past it (soft no-priming guard)
+ * - ko/en toggle (answers survive switching; ?lang=ko|en forces), ?src= cohort tagging
+ * - conditional: review_count=0 hides "acted"; no code exposure removes the code section
  * - autosave to localStorage; POST to Apps Script endpoint or JSON-download fallback
  */
 (function () {
@@ -15,6 +15,9 @@
     lang: null,
     answers: {},
     files: [],
+    stepId: "consent",
+    sub: 0,
+    visited: { consent: 0 }, // stepId -> max sub visited
     meta: {
       version: CFG.VERSION,
       src: new URLSearchParams(location.search).get("src") || "",
@@ -23,9 +26,11 @@
       startedAt: null,
       recallLockedAt: null,
       cardOrder: null,
+      pageTimesMs: {},
     },
     submitted: false,
   };
+  let shownAt = Date.now();
 
   // ---------- helpers ----------
   const $ = (sel) => document.querySelector(sel);
@@ -148,193 +153,368 @@
     );
   }
 
-  // ---------- page ----------
+  // ---------- steps ----------
+  function steps() {
+    state.meta.cardOrder = state.meta.cardOrder || shuffle(CARD_KEYS);
+    const order = state.meta.cardOrder;
+    const showActed = get("review_count") !== 0;
+    const list = [];
+
+    list.push({
+      id: "consent", label: () => t("step_consent"), subCount: 1,
+      render() {
+        const R = CFG.REWARD[state.lang];
+        const bullets = t("s0_bullets").map((b) => `<li>${esc(fmt(b, { minutes: CFG.MINUTES, base: R.base, prize: R.prize }))}</li>`).join("");
+        return `<div class="logo-row">
+            <img src="assets/logos/snu.png" alt="Seoul National University" class="inst-logo">
+            <span class="logo-x">×</span>
+            <img src="assets/logos/umn.png" alt="University of Minnesota" class="inst-logo">
+          </div>
+          <h1>${esc(t("s0_heading"))}</h1>
+          <p>${esc(t("s0_p1"))}</p><p>${esc(t("s0_p2"))}</p>
+          <ul class="bullets">${bullets}</ul>
+          <p class="contact">${esc(fmt(t("s0_contact"), { email: CFG.CONTACT_EMAIL }))}</p>
+          <input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+          <div class="q" data-q="consent"><label class="opt consent"><input type="checkbox" name="consent" ${get("consent") ? "checked" : ""}> <span>${esc(t("s0_consent"))}</span></label><div class="q-err"></div></div>`;
+      },
+      validate() { return get("consent") ? [] : ["consent"]; },
+      nextLabel: () => t("nav_start"),
+    });
+
+    list.push({
+      id: "s1", label: () => t("step_s1"), subCount: 1,
+      render() {
+        return `<h2>${esc(t("s1_heading"))}</h2>` +
+          radios("role", t("role_opts"), { label: t("role_q"), otherIdx: 6 }) +
+          radios("review_count", t("review_opts"), { label: t("review_q"), note: t("review_note") }) +
+          radios("field", t("field_opts"), { label: t("field_q"), otherIdx: 7 }) +
+          radios("llm_use", t("llm_opts"), { label: t("llm_q") }) +
+          checks("ai_tools", t("tools_opts"), { label: t("tools_q"), otherIdx: 7 }) +
+          radios("code_exposure", t("code_exp_opts"), { label: t("code_exp_q") });
+      },
+      validate() {
+        const miss = [];
+        ["role", "review_count", "field", "llm_use", "code_exposure"].forEach((id) => { if (get(id) === undefined) miss.push(id); });
+        if (!(get("ai_tools") || []).length) miss.push("ai_tools");
+        return miss;
+      },
+    });
+
+    list.push({
+      id: "s2a", label: () => t("step_s2a"), subCount: 1,
+      render() {
+        return `<h2>${esc(t("s2a_heading"))}</h2>` +
+          radios("d_freq", t("dfreq_opts"), { label: t("dfreq_q") }) +
+          radios("d_share", t("dshare_opts"), { label: t("dshare_q") }) +
+          checks("d_context", t("dctx_opts"), { label: t("dctx_q"), otherIdx: 4, req: false }) +
+          textinput("d_topics", { label: t("dtopics_q"), note: t("dtopics_note") }) +
+          textarea("d_links", { req: false, label: t("dlinks_q"), note: t("dlinks_note"), rows: 2 });
+      },
+      validate() {
+        const miss = [];
+        ["d_freq", "d_share"].forEach((id) => { if (get(id) === undefined) miss.push(id); });
+        if (!String(get("d_topics") || "").trim()) miss.push("d_topics");
+        return miss;
+      },
+    });
+
+    list.push({
+      id: "recall", label: () => t("step_recall"), subCount: 1,
+      render() {
+        const locked = !!state.meta.recallLockedAt;
+        const verbRows = [1, 2, 3].map((n) => {
+          const filled = n === 1 || String(get("r_p" + n) || "").trim().length > 0;
+          return `<div class="verb-row" id="verbrow_${n}" ${filled ? "" : "style='display:none'"}>
+            <div class="verb-lab">${esc(fmt(t("verb_label"), { n }))}</div>` + radiosBare("r_v" + n, t("verb_opts")) + `</div>`;
+        }).join("");
+        return `<h2>${esc(t("s2b_heading"))}</h2>
+          <p>${esc(t("s2b_intro"))}</p>
+          <p class="ex-note">${esc(t("s2b_ex_note"))}</p>
+          <div class="example"><h3>${esc(t("ex1_title"))}</h3><img src="assets/cards/card9_arggraph.png" alt=""><p class="ex-desc">${esc(t("ex1_desc"))}</p></div>
+          <div class="example"><h3>${esc(t("ex2_title"))}</h3><img src="assets/cards/card10_figurecolor.png" alt=""><p class="ex-desc">${esc(t("ex2_desc"))}</p></div>
+          <p class="ex-after">${esc(t("ex_after"))}</p>
+          <div class="q" data-q="r_p1" data-minlen="20">${qhead(t("recall_q"), true, t("recall_note"))}
+            <label class="sub-lab">${esc(t("recall_p1"))}</label>
+            <textarea id="r_p1" rows="2">${esc(get("r_p1") || "")}</textarea>
+            <label class="sub-lab">${esc(t("recall_p2"))} <span class="tag opt">${esc(t("optional_mark"))}</span></label>
+            <textarea id="r_p2" rows="2">${esc(get("r_p2") || "")}</textarea>
+            <label class="sub-lab">${esc(t("recall_p3"))} <span class="tag opt">${esc(t("optional_mark"))}</span></label>
+            <textarea id="r_p3" rows="2">${esc(get("r_p3") || "")}</textarea>
+            <div class="q-err"></div>
+          </div>
+          <div class="q" data-q="verb">${qhead(t("verb_q"), true)}${verbRows}<div class="q-err"></div></div>` +
+          textarea("r_contrast", { req: false, label: t("contrast_q"), note: t("contrast_note"), rows: 2 }) +
+          `<div class="lock-warning ${locked ? "locked-note" : ""}" id="recall-lock-note">${esc(locked ? t("sp_recall_locked") : t("wz_recall_lock_warning"))}</div>`;
+      },
+      validate() {
+        const miss = [];
+        if (String(get("r_p1") || "").trim().length < 20) miss.push("r_p1");
+        [1, 2, 3].forEach((n) => {
+          const filled = n === 1 || String(get("r_p" + n) || "").trim().length > 0;
+          if (filled && get("r_v" + n) === undefined && miss.indexOf("verb") < 0) miss.push("verb");
+        });
+        return miss;
+      },
+      onLeaveForward() {
+        if (!state.meta.recallLockedAt) { state.meta.recallLockedAt = new Date().toISOString(); save(); }
+      },
+      afterRender() {
+        if (state.meta.recallLockedAt) {
+          RECALL_IDS.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) { el.readOnly = true; el.classList.add("locked"); }
+          });
+          document.querySelectorAll('input[name^="r_v"]').forEach((el) => { el.disabled = true; });
+        }
+      },
+    });
+
+    list.push({
+      id: "s3", label: () => t("step_s3"), subCount: 1,
+      render() {
+        return `<h2>${esc(t("s3_heading"))}</h2>
+          <p>${esc(t("s3_p1"))}</p><p>${esc(t("s3_p2"))}</p><p>${esc(t("s3_p3"))}</p><p>${esc(t("s3_p4"))}</p>
+          <p class="demo-link">${esc(t("s3_more"))}<a href="${esc(CFG.DEMO_URL)}" target="_blank" rel="noopener">${esc(CFG.DEMO_URL)}</a></p>`;
+      },
+      validate() { return []; },
+    });
+
+    list.push({
+      id: "cards", label: () => t("step_cards"), subCount: 9, // 8 cards + wrap
+      subLabel(sub) { return sub < 8 ? fmt(t("wz_card_sub"), { i: sub + 1, n: 8 }) : t("s4wrap_heading"); },
+      render(sub) {
+        if (sub < 8) {
+          const key = order[sub];
+          const card = t("cards")[key];
+          const img = CARD_IMG[key];
+          return `<h2>${esc(t("s4_heading"))}</h2>
+            <div class="card-note">${esc(fmt(t("s4_note"), { i: sub + 1 }))}</div>
+            <div class="mold-card ${img ? "" : "text-card"}">
+              <h3>${esc(card.title)}</h3>
+              ${img ? `<img src="${img}" alt="">` : ""}
+              ${img && state.lang === "en" ? `<div class="img-caption">${esc(t("s4_img_caption"))}</div>` : ""}
+              ${card.stat && (!img || state.lang === "en") ? `<div class="card-stat">${esc(card.stat)}</div>` : ""}
+            </div>` +
+            scale5("c_" + key + "_seen", { label: t("seen_q") }) +
+            radios("c_" + key + "_named", t("named_opts"), { label: t("named_q") }) +
+            (showActed ? radios("c_" + key + "_acted", t("acted_opts"), { label: t("acted_q") }) : "");
+        }
+        const titles = order.map((k) => t("cards")[k].title);
+        return `<h2>${esc(t("s4wrap_heading"))}</h2>` +
+          checks("w_top2", titles, { label: t("top2_q"), max: 2 }) +
+          textarea("w_doubt", { label: t("doubt_q"), note: t("doubt_note"), rows: 3 });
+      },
+      validate(sub) {
+        const miss = [];
+        if (sub < 8) {
+          const key = order[sub];
+          if (get("c_" + key + "_seen") === undefined) miss.push("c_" + key + "_seen");
+          if (get("c_" + key + "_named") === undefined) miss.push("c_" + key + "_named");
+          if (showActed && get("c_" + key + "_acted") === undefined) miss.push("c_" + key + "_acted");
+        } else {
+          if (!(get("w_top2") || []).length) miss.push("w_top2");
+          if (!String(get("w_doubt") || "").trim()) miss.push("w_doubt");
+          state.answers.w_top2_keys = (get("w_top2") || []).map((i) => order[i]);
+        }
+        return miss;
+      },
+    });
+
+    list.push({
+      id: "s5", label: () => t("step_s5"), subCount: 1,
+      render() {
+        const R = CFG.REWARD[state.lang];
+        return `<h2>${esc(t("s5_heading"))}</h2>
+          <p>${esc(t("s5_intro"))}</p>
+          <div class="prize-box">${esc(fmt(t("s5_prize"), { prize: R.prize })).replace(/\n/g, "<br>")}</div>
+          <h3 class="cand-head">${esc(t("cand1_heading"))}</h3>` + candidateFields("m1", true) +
+          `<h3 class="cand-head">${esc(t("cand2_heading"))}</h3>` + candidateFields("m2", false);
+      },
+      validate() {
+        const miss = [];
+        if (!String(get("m1_name") || "").trim()) miss.push("m1_name");
+        if (String(get("m1_rule") || "").trim().length < 10) miss.push("m1_rule");
+        if (!(get("m1_where") || []).length) miss.push("m1_where");
+        if (!String(get("m1_count") || "").trim()) miss.push("m1_count");
+        if (!String(get("m1_why") || "").trim()) miss.push("m1_why");
+        if (get("m1_erase") === undefined) miss.push("m1_erase");
+        const any2 = ["m2_rule", "m2_count", "m2_why", "m2_fix", "m2_example"].some((id) => String(get(id) || "").trim()) || (get("m2_where") || []).length || get("m2_erase") !== undefined;
+        if (any2 && !String(get("m2_name") || "").trim()) miss.push("m2_name");
+        return miss;
+      },
+    });
+
+    if (get("code_exposure") === 0 || get("code_exposure") === 1) {
+      list.push({
+        id: "s5b", label: () => t("step_s5b"), subCount: 1,
+        render() {
+          return `<h2>${esc(t("s5b_heading"))}</h2><p>${esc(t("s5b_intro"))}</p>` +
+            textarea("b_code", { label: t("b_code_q"), minlen: 10, rows: 3 }) +
+            checks("b_seen", t("b_seen_opts"), { label: t("b_seen_q") }) +
+            textarea("b_only", { req: false, label: t("b_only_q"), rows: 2 });
+        },
+        validate() {
+          const miss = [];
+          if (String(get("b_code") || "").trim().length < 10) miss.push("b_code");
+          if (!(get("b_seen") || []).length) miss.push("b_seen");
+          return miss;
+        },
+      });
+    }
+
+    list.push({
+      id: "s6", label: () => t("step_s6"), subCount: 1,
+      render() {
+        return `<h2>${esc(t("s6_heading"))}</h2><p>${esc(t("s6_intro"))}</p>` +
+          textarea("q_unverbal", { label: t("unverbal_q"), note: t("unverbal_note"), rows: 3 }) +
+          textarea("q_askedfix", { req: false, label: t("askedfix_q"), rows: 2 }) +
+          radios("q_bottleneck", t("bottleneck_opts"), { label: t("bottleneck_q") }) +
+          textarea("q_converge", { req: false, label: t("converge_q"), rows: 2 }) +
+          textinput("q_ai_ok", { label: t("ai_ok_q") }) +
+          textinput("q_human_must", { label: t("human_must_q") });
+      },
+      validate() {
+        const miss = [];
+        if (!String(get("q_unverbal") || "").trim()) miss.push("q_unverbal");
+        if (get("q_bottleneck") === undefined) miss.push("q_bottleneck");
+        if (!String(get("q_ai_ok") || "").trim()) miss.push("q_ai_ok");
+        if (!String(get("q_human_must") || "").trim()) miss.push("q_human_must");
+        return miss;
+      },
+    });
+
+    list.push({
+      id: "s7", label: () => t("step_s7"), subCount: 1,
+      render() {
+        const uploadBlock = CFG.ENDPOINT
+          ? `<div class="q" data-q="upload">${qhead(fmt(t("upload_q"), { max: CFG.MAX_FILES, mb: CFG.MAX_FILE_MB }), false, t("upload_note"))}
+              <input type="file" id="file_input" accept="image/*" multiple style="display:none">
+              <button type="button" class="ghost-btn" id="file_pick">${esc(t("upload_pick"))}</button>
+              <button type="button" class="ghost-btn" id="file_clear" ${state.files.length ? "" : "style='display:none'"}>${esc(t("upload_clear"))}</button>
+              <div id="file_list" class="file-list">${state.files.map((f) => esc(f.name)).join("<br>")}</div>
+              <div class="q-err"></div></div>`
+          : "";
+        return `<h2>${esc(t("s7_heading"))}</h2>` + uploadBlock +
+          radios("next_round", t("next_round_opts"), { req: false, label: t("next_round_q") }) +
+          textinput("email", { label: t("email_q"), note: t("email_note"), type: "email" }) +
+          radios("ack", t("ack_opts"), { label: t("ack_q") }) +
+          `<div id="ack_name_wrap" ${get("ack") === 0 ? "" : "style='display:none'"}>` +
+          textinput("ack_name", { req: false, label: t("ack_name_q") }) + `</div>` +
+          radios("notify", t("notify_opts"), { req: false, label: t("notify_q") }) +
+          textarea("comments", { req: false, label: t("comments_q"), rows: 2 });
+      },
+      validate() {
+        const miss = [];
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(get("email") || "").trim())) miss.push("email");
+        if (get("ack") === undefined) miss.push("ack");
+        if (get("ack") === 0 && !String(get("ack_name") || "").trim()) miss.push("ack_name");
+        return miss;
+      },
+      nextLabel: () => t("nav_submit"),
+    });
+
+    return list;
+  }
+  const stepIndex = (list, id) => list.findIndex((s) => s.id === id);
+  function furthestIndex(list) {
+    let max = 0;
+    for (const id in state.visited) {
+      const i = stepIndex(list, id);
+      if (i > max) max = i;
+    }
+    return max;
+  }
+  function unitPos(list) {
+    let done = 0, total = 0, cur = 0;
+    list.forEach((s, i) => {
+      const idx = stepIndex(list, state.stepId);
+      if (i < idx) done += s.subCount;
+      if (i === idx) done += state.sub;
+      total += s.subCount;
+    });
+    cur = done;
+    return { cur, total };
+  }
+
+  // ---------- rendering ----------
   function render() {
     document.title = t("app_title");
     document.documentElement.lang = state.lang;
     document.querySelectorAll(".lang-btn").forEach((b) => b.classList.toggle("active", b.dataset.lang === state.lang));
     if (state.submitted) { renderDone(); return; }
 
-    state.meta.cardOrder = state.meta.cardOrder || shuffle(CARD_KEYS);
-    const R = CFG.REWARD[state.lang];
-    const bullets = t("s0_bullets").map((b) => `<li>${esc(fmt(b, { minutes: CFG.MINUTES, base: R.base, prize: R.prize }))}</li>`).join("");
+    const list = steps();
+    let idx = stepIndex(list, state.stepId);
+    if (idx < 0) { state.stepId = list[0].id; state.sub = 0; idx = 0; } // e.g. s5b removed
+    const step = list[idx];
+    if (state.sub >= step.subCount) state.sub = step.subCount - 1;
 
-    // --- intro + consent ---
-    let html = `<h1>${esc(t("s0_heading"))}</h1>
-      <p>${esc(t("s0_p1"))}</p><p>${esc(t("s0_p2"))}</p>
-      <ul class="bullets">${bullets}</ul>
-      <p class="contact">${esc(fmt(t("s0_contact"), { email: CFG.CONTACT_EMAIL }))}</p>
-      <div class="flow-note">${esc(t("sp_flow_note"))}</div>
-      <input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
-      <div class="q" data-q="consent"><label class="opt consent"><input type="checkbox" name="consent" ${get("consent") ? "checked" : ""}> <span>${esc(t("s0_consent"))}</span></label><div class="q-err"></div></div>
-      <hr class="sec-hr">`;
+    // record visit
+    state.visited[step.id] = Math.max(state.visited[step.id] || 0, state.sub);
 
-    // --- S1 ---
-    html += `<section><h2>${esc(t("s1_heading"))}</h2>` +
-      radios("role", t("role_opts"), { label: t("role_q"), otherIdx: 6 }) +
-      radios("review_count", t("review_opts"), { label: t("review_q"), note: t("review_note") }) +
-      radios("field", t("field_opts"), { label: t("field_q"), otherIdx: 7 }) +
-      radios("llm_use", t("llm_opts"), { label: t("llm_q") }) +
-      checks("ai_tools", t("tools_opts"), { label: t("tools_q"), otherIdx: 7 }) +
-      radios("code_exposure", t("code_exp_opts"), { label: t("code_exp_q") }) +
-      `</section><hr class="sec-hr">`;
+    // progress
+    const { cur, total } = unitPos(list);
+    const pct = Math.round((cur / total) * 100);
+    $("#progress-fill").style.width = pct + "%";
+    $("#mobile-step").textContent = fmt(t("wz_mobile_step"), { i: idx + 1, n: list.length }) + (step.subCount > 1 ? " · " + step.subLabel(state.sub) : "");
 
-    // --- S2a 빈도 ---
-    html += `<section><h2>${esc(t("s2a_heading"))}</h2>` +
-      radios("d_freq", t("dfreq_opts"), { label: t("dfreq_q") }) +
-      radios("d_share", t("dshare_opts"), { label: t("dshare_q") }) +
-      checks("d_context", t("dctx_opts"), { label: t("dctx_q"), otherIdx: 4, req: false }) +
-      textinput("d_topics", { label: t("dtopics_q"), note: t("dtopics_note") }) +
-      textarea("d_links", { req: false, label: t("dlinks_q"), note: t("dlinks_note"), rows: 2 }) +
-      `</section><hr class="sec-hr">`;
-
-    // --- S2b 자유 회상 ---
-    const verbRows = [1, 2, 3].map((n) => {
-      const filled = n === 1 || String(get("r_p" + n) || "").trim().length > 0;
-      return `<div class="verb-row" id="verbrow_${n}" ${filled ? "" : "style='display:none'"}>
-        <div class="verb-lab">${esc(fmt(t("verb_label"), { n }))}</div>` + radiosBare("r_v" + n, t("verb_opts")) + `</div>`;
-    }).join("");
-    html += `<section id="sec-recall"><h2>${esc(t("s2b_heading"))}</h2>
-      <p>${esc(t("sp_recall_intro"))}</p>
-      <p class="ex-note">${esc(t("s2b_ex_note"))}</p>
-      <div class="example"><h3>${esc(t("ex1_title"))}</h3><img src="assets/cards/card9_arggraph.png" alt=""><p class="ex-desc">${esc(t("ex1_desc"))}</p></div>
-      <div class="example"><h3>${esc(t("ex2_title"))}</h3><img src="assets/cards/card10_figurecolor.png" alt=""><p class="ex-desc">${esc(t("ex2_desc"))}</p></div>
-      <p class="ex-after">${esc(t("ex_after"))}</p>
-      <div class="q" data-q="r_p1" data-minlen="20">${qhead(t("recall_q"), true, t("recall_note"))}
-        <label class="sub-lab">${esc(t("recall_p1"))}</label>
-        <textarea id="r_p1" rows="2">${esc(get("r_p1") || "")}</textarea>
-        <label class="sub-lab">${esc(t("recall_p2"))} <span class="tag opt">${esc(t("optional_mark"))}</span></label>
-        <textarea id="r_p2" rows="2">${esc(get("r_p2") || "")}</textarea>
-        <label class="sub-lab">${esc(t("recall_p3"))} <span class="tag opt">${esc(t("optional_mark"))}</span></label>
-        <textarea id="r_p3" rows="2">${esc(get("r_p3") || "")}</textarea>
-        <div class="q-err"></div>
-      </div>
-      <div class="q" data-q="verb">${qhead(t("verb_q"), true)}${verbRows}<div class="q-err"></div></div>` +
-      textarea("r_contrast", { req: false, label: t("contrast_q"), note: t("contrast_note"), rows: 2 }) +
-      `<div class="lock-warning" id="recall-lock-note">${esc(state.meta.recallLockedAt ? t("sp_recall_locked") : t("sp_recall_lock_warning"))}</div>
-      </section><hr class="sec-hr">`;
-
-    // --- S3 배경 ---
-    html += `<section><h2>${esc(t("s3_heading"))}</h2>
-      <p>${esc(t("s3_p1"))}</p><p>${esc(t("s3_p2"))}</p><p>${esc(t("s3_p3"))}</p><p>${esc(t("s3_p4"))}</p>
-      <p class="demo-link">${esc(t("s3_more"))}<a href="${esc(CFG.DEMO_URL)}" target="_blank" rel="noopener">${esc(CFG.DEMO_URL)}</a></p>
-      </section><hr class="sec-hr">`;
-
-    // --- S4 카드 8장 ---
-    const showActed = get("review_count") !== 0;
-    html += `<section id="sec-cards"><h2>${esc(t("s4_heading"))}</h2><p class="card-note">${esc(t("sp_cards_note"))}</p>`;
-    state.meta.cardOrder.forEach((key, i) => {
-      const card = t("cards")[key];
-      const img = CARD_IMG[key];
-      html += `<div class="card-block">
-        <div class="card-idx">${i + 1} / 8</div>
-        <div class="mold-card ${img ? "" : "text-card"}">
-          <h3>${esc(card.title)}</h3>
-          ${img ? `<img src="${img}" alt="" loading="lazy">` : ""}
-          ${img && state.lang === "en" ? `<div class="img-caption">${esc(t("s4_img_caption"))}</div>` : ""}
-          ${card.stat && (!img || state.lang === "en") ? `<div class="card-stat">${esc(card.stat)}</div>` : ""}
-        </div>` +
-        scale5("c_" + key + "_seen", { label: t("seen_q") }) +
-        radios("c_" + key + "_named", t("named_opts"), { label: t("named_q") }) +
-        `<div class="acted-q" ${showActed ? "" : "style='display:none'"}>` +
-        radios("c_" + key + "_acted", t("acted_opts"), { label: t("acted_q") }) + `</div>
-        </div>`;
+    // stepper sidebar
+    const fi = furthestIndex(list);
+    let side = "";
+    list.forEach((s, i) => {
+      const cls = i === idx ? "current" : i <= fi ? "done" : "todo";
+      const clickable = i <= fi && i !== idx;
+      const subTxt = i === idx && s.subCount > 1 ? `<span class="step-sub">${esc(s.subLabel(state.sub))}</span>` : "";
+      side += `<button type="button" class="step ${cls}" data-step="${s.id}" ${clickable ? "" : "disabled"}>
+        <span class="step-dot">${i < idx || (i <= fi && i !== idx) ? "✓" : i + 1}</span>
+        <span class="step-lab">${esc(s.label())}${subTxt}</span></button>`;
     });
-    const titles = state.meta.cardOrder.map((k) => t("cards")[k].title);
-    html += `<h3 class="wrap-head">${esc(t("s4wrap_heading"))}</h3>` +
-      checks("w_top2", titles, { label: t("top2_q"), max: 2 }) +
-      textarea("w_doubt", { label: t("doubt_q"), note: t("doubt_note"), rows: 3 }) +
-      `</section><hr class="sec-hr">`;
+    $("#stepper").innerHTML = side;
+    document.querySelectorAll(".step[data-step]").forEach((b) => {
+      b.addEventListener("click", () => {
+        if (b.disabled) return;
+        recordTime(step);
+        state.stepId = b.dataset.step;
+        state.sub = 0;
+        save();
+        render();
+      });
+    });
 
-    // --- S5 신규 제안 ---
-    html += `<section><h2>${esc(t("s5_heading"))}</h2>
-      <p>${esc(t("s5_intro"))}</p>
-      <div class="prize-box">${esc(fmt(t("s5_prize"), { prize: R.prize })).replace(/\n/g, "<br>")}</div>
-      <h3 class="cand-head">${esc(t("cand1_heading"))}</h3>` + candidateFields("m1", true) +
-      `<h3 class="cand-head">${esc(t("cand2_heading"))}</h3>` + candidateFields("m2", false) +
-      `</section><hr class="sec-hr">`;
+    // page
+    $("#page").innerHTML = step.render(state.sub);
+    if (step.afterRender) step.afterRender(state.sub);
+    window.scrollTo(0, 0);
 
-    // --- S5B 코드 (code_exposure 자주/몇 번일 때만) ---
-    const showB = get("code_exposure") === 0 || get("code_exposure") === 1;
-    html += `<section id="sec-s5b" ${showB ? "" : "style='display:none'"}><h2>${esc(t("s5b_heading"))}</h2><p>${esc(t("s5b_intro"))}</p>` +
-      textarea("b_code", { label: t("b_code_q"), minlen: 10, rows: 3 }) +
-      checks("b_seen", t("b_seen_opts"), { label: t("b_seen_q") }) +
-      textarea("b_only", { req: false, label: t("b_only_q"), rows: 2 }) +
-      `</section><hr class="sec-hr" id="hr-s5b" ${showB ? "" : "style='display:none'"}>`;
+    $("#btn-back").style.display = (idx === 0 && state.sub === 0) ? "none" : "";
+    $("#btn-back").textContent = t("nav_back");
+    $("#btn-next").textContent = step.nextLabel ? step.nextLabel() : t("nav_next");
+    $("#btn-next").disabled = false;
+    $("#submit-err").textContent = "";
 
-    // --- S6 ---
-    html += `<section><h2>${esc(t("s6_heading"))}</h2><p>${esc(t("s6_intro"))}</p>` +
-      textarea("q_unverbal", { label: t("unverbal_q"), note: t("unverbal_note"), rows: 3 }) +
-      textarea("q_askedfix", { req: false, label: t("askedfix_q"), rows: 2 }) +
-      radios("q_bottleneck", t("bottleneck_opts"), { label: t("bottleneck_q") }) +
-      textarea("q_converge", { req: false, label: t("converge_q"), rows: 2 }) +
-      textinput("q_ai_ok", { label: t("ai_ok_q") }) +
-      textinput("q_human_must", { label: t("human_must_q") }) +
-      `</section><hr class="sec-hr">`;
-
-    // --- S7 ---
-    const uploadBlock = CFG.ENDPOINT
-      ? `<div class="q" data-q="upload">${qhead(fmt(t("upload_q"), { max: CFG.MAX_FILES, mb: CFG.MAX_FILE_MB }), false, t("upload_note"))}
-          <input type="file" id="file_input" accept="image/*" multiple style="display:none">
-          <button type="button" class="ghost-btn" id="file_pick">${esc(t("upload_pick"))}</button>
-          <button type="button" class="ghost-btn" id="file_clear" ${state.files.length ? "" : "style='display:none'"}>${esc(t("upload_clear"))}</button>
-          <div id="file_list" class="file-list">${state.files.map((f) => esc(f.name)).join("<br>")}</div>
-          <div class="q-err"></div></div>`
-      : "";
-    html += `<section><h2>${esc(t("s7_heading"))}</h2>` + uploadBlock +
-      radios("next_round", t("next_round_opts"), { req: false, label: t("next_round_q") }) +
-      textinput("email", { label: t("email_q"), note: t("email_note"), type: "email" }) +
-      radios("ack", t("ack_opts"), { label: t("ack_q") }) +
-      `<div id="ack_name_wrap" ${get("ack") === 0 ? "" : "style='display:none'"}>` +
-      textinput("ack_name", { req: false, label: t("ack_name_q") }) + `</div>` +
-      radios("notify", t("notify_opts"), { req: false, label: t("notify_q") }) +
-      textarea("comments", { req: false, label: t("comments_q"), rows: 2 }) +
-      `</section>
-      <div class="navrow"><button type="button" id="btn-submit" class="nav-btn primary">${esc(t("nav_submit"))}</button></div>
-      <div class="q-err" id="submit-err"></div>`;
-
-    $("#page").innerHTML = html;
-    applyRecallLock();
     attachHandlers();
+    shownAt = Date.now();
   }
 
-  // ---------- recall lock (soft no-priming guard) ----------
-  function applyRecallLock() {
-    if (!state.meta.recallLockedAt) return;
-    RECALL_IDS.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) { el.readOnly = true; el.classList.add("locked"); }
-    });
-    document.querySelectorAll('input[name^="r_v"]').forEach((el) => { el.disabled = true; });
-    const note = document.getElementById("recall-lock-note");
-    if (note) { note.textContent = t("sp_recall_locked"); note.classList.add("locked-note"); }
-  }
-  function lockRecall() {
-    if (state.meta.recallLockedAt) return;
-    state.meta.recallLockedAt = new Date().toISOString();
-    save();
-    applyRecallLock();
+  function recordTime(step) {
+    const key = step.id + (step.subCount > 1 ? "_" + state.sub : "");
+    state.meta.pageTimesMs[key] = (state.meta.pageTimesMs[key] || 0) + (Date.now() - shownAt);
   }
 
   // ---------- events ----------
   function attachHandlers() {
     const root = $("#page");
-
-    root.addEventListener("input", (e) => {
+    root.oninput = (e) => {  // assignment (not addEventListener): render() runs per page, avoid stacking listeners
       const el = e.target;
       if (!el.name && !el.id) return;
       if (!state.meta.startedAt) { state.meta.startedAt = new Date().toISOString(); save(); }
 
-      // answering a question clears its error highlight
       const qBox = el.closest(".q");
       if (qBox) {
         qBox.classList.remove("has-err");
         const er = qBox.querySelector(".q-err");
         if (er) er.textContent = "";
       }
-
-      // touching anything inside/after the card section freezes the free-recall answers
-      if (el.closest("#sec-cards") || /^(c_|w_)/.test(el.name || el.id || "")) lockRecall();
 
       if (el.type === "radio") {
         A(el.name, parseInt(el.value, 10));
@@ -343,16 +523,6 @@
         if (el.name === "ack") {
           const w = document.getElementById("ack_name_wrap");
           if (w) w.style.display = get("ack") === 0 ? "" : "none";
-        }
-        if (el.name === "review_count") {
-          document.querySelectorAll(".acted-q").forEach((d) => { d.style.display = get("review_count") !== 0 ? "" : "none"; });
-        }
-        if (el.name === "code_exposure") {
-          const showB = get("code_exposure") === 0 || get("code_exposure") === 1;
-          const sec = document.getElementById("sec-s5b");
-          const hr = document.getElementById("hr-s5b");
-          if (sec) sec.style.display = showB ? "" : "none";
-          if (hr) hr.style.display = showB ? "" : "none";
         }
       } else if (el.type === "checkbox" && el.name) {
         const q = el.closest(".q");
@@ -373,9 +543,10 @@
           if (row) row.style.display = el.value.trim() ? "" : "none";
         }
       }
-    });
+    };
 
-    $("#btn-submit").addEventListener("click", submit);
+    $("#btn-next").onclick = next;
+    $("#btn-back").onclick = back;
 
     const pick = document.getElementById("file_pick");
     if (pick) {
@@ -416,75 +587,13 @@
     const err = qEl.querySelector(".q-err");
     if (err) { err.textContent = msg; qEl.classList.add("has-err"); }
   }
-  function clearErrs() {
-    document.querySelectorAll(".q-err").forEach((e) => (e.textContent = ""));
-    document.querySelectorAll(".has-err").forEach((e) => e.classList.remove("has-err"));
-  }
 
-  // ---------- validation ----------
-  function validateAll() {
-    const miss = [];
-    if (!get("consent")) miss.push("consent");
-    ["role", "review_count", "field", "llm_use", "code_exposure", "d_freq", "d_share"].forEach((id) => { if (get(id) === undefined) miss.push(id); });
-    if (!(get("ai_tools") || []).length) miss.push("ai_tools");
-    if (!String(get("d_topics") || "").trim()) miss.push("d_topics");
-    if (String(get("r_p1") || "").trim().length < 20) miss.push("r_p1");
-    [1, 2, 3].forEach((n) => {
-      const filled = n === 1 || String(get("r_p" + n) || "").trim().length > 0;
-      if (filled && get("r_v" + n) === undefined && miss.indexOf("verb") < 0) miss.push("verb");
-    });
-    CARD_KEYS.forEach((key) => {
-      if (get("c_" + key + "_seen") === undefined) miss.push("c_" + key + "_seen");
-      if (get("c_" + key + "_named") === undefined) miss.push("c_" + key + "_named");
-      if (get("review_count") !== 0 && get("c_" + key + "_acted") === undefined) miss.push("c_" + key + "_acted");
-    });
-    if (!(get("w_top2") || []).length) miss.push("w_top2");
-    if (!String(get("w_doubt") || "").trim()) miss.push("w_doubt");
-    if (!String(get("m1_name") || "").trim()) miss.push("m1_name");
-    if (String(get("m1_rule") || "").trim().length < 10) miss.push("m1_rule");
-    if (!(get("m1_where") || []).length) miss.push("m1_where");
-    if (!String(get("m1_count") || "").trim()) miss.push("m1_count");
-    if (!String(get("m1_why") || "").trim()) miss.push("m1_why");
-    if (get("m1_erase") === undefined) miss.push("m1_erase");
-    const any2 = ["m2_rule", "m2_count", "m2_why", "m2_fix", "m2_example"].some((id) => String(get(id) || "").trim()) || (get("m2_where") || []).length || get("m2_erase") !== undefined;
-    if (any2 && !String(get("m2_name") || "").trim()) miss.push("m2_name");
-    if (get("code_exposure") === 0 || get("code_exposure") === 1) {
-      if (String(get("b_code") || "").trim().length < 10) miss.push("b_code");
-      if (!(get("b_seen") || []).length) miss.push("b_seen");
-    }
-    if (!String(get("q_unverbal") || "").trim()) miss.push("q_unverbal");
-    if (get("q_bottleneck") === undefined) miss.push("q_bottleneck");
-    if (!String(get("q_ai_ok") || "").trim()) miss.push("q_ai_ok");
-    if (!String(get("q_human_must") || "").trim()) miss.push("q_human_must");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(get("email") || "").trim())) miss.push("email");
-    if (get("ack") === undefined) miss.push("ack");
-    if (get("ack") === 0 && !String(get("ack_name") || "").trim()) miss.push("ack_name");
-    return miss;
-  }
-
-  // ---------- submit ----------
-  function payload() {
-    const sel = (get("w_top2") || []).map((i) => state.meta.cardOrder[i]);
-    state.answers.w_top2_keys = sel;
-    const hp = document.getElementById("hp_website");
-    return {
-      version: CFG.VERSION,
-      lang: state.lang,
-      src: state.meta.src,
-      ua: state.meta.ua,
-      screen: state.meta.screen,
-      startedAt: state.meta.startedAt,
-      submittedAt: new Date().toISOString(),
-      recallLockedAt: state.meta.recallLockedAt,
-      cardOrder: state.meta.cardOrder,
-      honeypot: hp ? hp.value : "",
-      answers: state.answers,
-      files: state.files,
-    };
-  }
-  async function submit() {
-    clearErrs();
-    const miss = validateAll();
+  // ---------- navigation ----------
+  function next() {
+    const list = steps();
+    const idx = stepIndex(list, state.stepId);
+    const step = list[idx];
+    const miss = step.validate ? step.validate(state.sub) : [];
     if (miss.length) {
       miss.forEach((id) => {
         const byId = document.getElementById(id);
@@ -496,13 +605,60 @@
           showErr(q, id === "email" && get("email") ? t("err_email") : isMin ? fmt(t("err_minlen"), { n: minlen }) : t("err_required"));
         }
       });
-      $("#submit-err").textContent = fmt(t("sp_submit_err"), { n: miss.length });
       const first = document.querySelector(".has-err");
       if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    recordTime(step);
+    if (state.sub < step.subCount - 1) {
+      state.sub++;
+    } else if (idx === list.length - 1) {
+      submit();
+      return;
+    } else {
+      if (step.onLeaveForward) step.onLeaveForward();
+      state.stepId = list[idx + 1].id;
+      state.sub = 0;
+    }
+    save();
+    render();
+  }
+  function back() {
+    const list = steps();
+    const idx = stepIndex(list, state.stepId);
+    const step = list[idx];
+    recordTime(step);
+    if (state.sub > 0) {
+      state.sub--;
+    } else if (idx > 0) {
+      state.stepId = list[idx - 1].id;
+      state.sub = list[idx - 1].subCount - 1;
+    }
+    save();
+    render();
+  }
 
-    const btn = $("#btn-submit");
+  // ---------- submit ----------
+  function payload() {
+    const hp = document.getElementById("hp_website");
+    return {
+      version: CFG.VERSION,
+      lang: state.lang,
+      src: state.meta.src,
+      ua: state.meta.ua,
+      screen: state.meta.screen,
+      startedAt: state.meta.startedAt,
+      submittedAt: new Date().toISOString(),
+      recallLockedAt: state.meta.recallLockedAt,
+      cardOrder: state.meta.cardOrder,
+      pageTimesMs: state.meta.pageTimesMs,
+      honeypot: hp ? hp.value : "",
+      answers: state.answers,
+      files: state.files,
+    };
+  }
+  async function submit() {
+    const btn = $("#btn-next");
     btn.disabled = true;
     btn.textContent = t("submitting");
     const data = payload();
@@ -519,7 +675,7 @@
       try { localStorage.removeItem(STORE_KEY); } catch (e) { }
       renderDone();
     } catch (e) {
-      fallback(data, fmt(t("submit_fail"), { email: CFG.CONTACT_EMAIL }), true);
+      fallback(data, fmt(t("submit_fail"), { email: CFG.CONTACT_EMAIL }));
     }
   }
   function fallback(data, msg) {
@@ -535,12 +691,17 @@
       a.click();
     });
     document.getElementById("fallback-box").scrollIntoView({ behavior: "smooth", block: "center" });
-    const btn = $("#btn-submit");
+    const btn = $("#btn-next");
     btn.disabled = false;
     btn.textContent = t("nav_submit");
   }
   function renderDone() {
     state.submitted = true;
+    $("#progress-fill").style.width = "100%";
+    $("#stepper").innerHTML = "";
+    $("#mobile-step").textContent = "";
+    $("#btn-back").style.display = "none";
+    $("#btn-next").style.display = "none";
     $("#page").innerHTML = `<h1>${esc(t("done_heading"))}</h1>
       <p>${esc(t("done_p1"))}</p>
       <p>${esc(t("done_p2"))}<a href="${esc(CFG.DEMO_URL)}" target="_blank" rel="noopener">${esc(CFG.DEMO_URL)}</a></p>

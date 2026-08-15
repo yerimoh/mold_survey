@@ -25,6 +25,21 @@ window.I18N = {
     resume_discard: "처음부터 다시 시작",
     progress: "진행",
 
+    // ---------- 스텝퍼 ----------
+    step_consent: "소개와 동의",
+    step_s1: "응답자 정보",
+    step_s2a: "최근에 보신 것",
+    step_recall: "먼저, 여러분이 본 것",
+    step_s3: "저희가 하는 것",
+    step_cards: "패턴 카드",
+    step_s5: "새 패턴 제안",
+    step_s5b: "코드·실험 기록",
+    step_s6: "말이 안 되던 것",
+    step_s7: "마무리",
+    wz_card_sub: "카드 {i} / {n}",
+    wz_mobile_step: "섹션 {i} / {n}",
+    wz_recall_lock_warning: "⚠ 다음으로 넘어가면 이 섹션의 답은 잠기고, 다시 와도 보기만 할 수 있습니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다.",
+
     // ---------- 단일 페이지 안내 ----------
     sp_flow_note: "위에서 아래로 순서대로 답해 주세요. 특히 3번(먼저, 여러분이 본 것)은 4번의 패턴 카드를 보기 전에 먼저 적어 주세요. 카드를 보기 시작하면 3번의 답은 잠깁니다.",
     sp_recall_intro: "아래 4번 섹션에서 저희가 찾은 패턴들을 보여 드립니다. 그 전에, 여러분이 먼저 떠올린 것을 듣고 싶습니다. 저희 예시를 보고 나면 생각이 그쪽으로 끌려가기 때문에, 이 문항의 답이 저희에게 가장 값진 자료입니다.",
@@ -238,6 +253,20 @@ window.I18N = {
     resume_notice: "We restored your earlier draft. You can continue where you left off.",
     resume_discard: "Start over",
     progress: "Progress",
+
+    step_consent: "Intro & consent",
+    step_s1: "About you",
+    step_s2a: "Seen recently",
+    step_recall: "In your own words",
+    step_s3: "What we do",
+    step_cards: "Pattern cards",
+    step_s5: "Propose a pattern",
+    step_s5b: "Code & records",
+    step_s6: "Beyond words",
+    step_s7: "Wrap-up",
+    wz_card_sub: "Card {i} / {n}",
+    wz_mobile_step: "Section {i} / {n}",
+    wz_recall_lock_warning: "⚠ Once you continue, this section locks — you can revisit it but only to view. This preserves answers uninfluenced by our examples.",
 
     sp_flow_note: "Please answer top to bottom. In particular, fill in section 3 (in your own words) before looking at the pattern cards in section 4 — once you start on the cards, section 3 locks.",
     sp_recall_intro: "Section 4 below shows the patterns we found. Before that, we want to hear what comes to your mind first. Once you see our examples your thinking will be pulled toward them, so this question is the most valuable data in the survey.",

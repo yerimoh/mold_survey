@@ -32,7 +32,23 @@ body {
 #progress-fill { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
 .progress-text { max-width: 760px; margin: 0 auto; padding: 2px 16px 6px; font-size: 12px; color: var(--ink-soft); }
 
-main { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+main { max-width: 1010px; margin: 0 auto; padding: 24px 16px 80px; }
+.layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 22px; align-items: start; }
+.stepper { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 2px; }
+.step { display: flex; align-items: flex-start; gap: 10px; text-align: left; background: none; border: none; padding: 8px 10px; border-radius: 8px; font: inherit; font-size: 13.5px; color: var(--ink-soft); cursor: pointer; }
+.step[disabled] { cursor: default; }
+.step.todo { opacity: .55; }
+.step.done:not([disabled]):hover { background: #eef1f5; }
+.step.current { background: #eef4fa; color: var(--ink); font-weight: 600; }
+.step-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 11px; background: var(--card); }
+.step.done .step-dot { background: var(--accent); border-color: var(--accent); color: #fff; }
+.step.current .step-dot { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.step-lab { padding-top: 2px; line-height: 1.35; }
+.step-sub { display: block; font-size: 11.5px; font-weight: 500; color: var(--accent); margin-top: 1px; }
+.mobile-step { display: none; font-size: 12.5px; color: var(--ink-soft); }
+.logo-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.inst-logo { height: 34px; width: auto; }
+.logo-x { color: var(--ink-soft); font-size: 14px; }
 .page { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px 26px; }
 h1 { font-size: 24px; line-height: 1.4; margin: 0 0 14px; }
 h2 { font-size: 20px; margin: 0 0 12px; }
@@ -113,8 +129,14 @@ textarea.locked { background: #f0f1f4; color: var(--ink-soft); }
 .resume-bar button { margin-left: 10px; font-size: 13px; border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 6px; padding: 2px 10px; cursor: pointer; }
 .submit-fallback { margin-top: 16px; padding: 14px; border: 1px solid var(--warn-line); background: var(--warn-bg); border-radius: 8px; }
 
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .stepper { display: none; }
+  .mobile-step { display: inline; }
+}
 @media (max-width: 560px) {
   .page { padding: 20px 16px; }
   h1 { font-size: 20px; }
   .verb-lab { padding-top: 0; }
+  .inst-logo { height: 26px; }
 }

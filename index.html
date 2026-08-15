@@ -11,15 +11,27 @@
   <header class="topbar">
     <div class="topbar-inner">
       <span class="brand">Mold Survey</span>
+      <span class="mobile-step" id="mobile-step"></span>
       <span class="lang-switch">
         <button type="button" class="lang-btn" data-lang="ko">한국어</button><button type="button" class="lang-btn" data-lang="en">English</button>
       </span>
     </div>
+    <div class="progress"><div id="progress-fill"></div></div>
   </header>
 
   <main>
     <noscript><p style="padding:2rem">This survey requires JavaScript. 이 설문은 자바스크립트가 필요합니다.</p></noscript>
-    <div id="page" class="page"></div>
+    <div class="layout">
+      <nav id="stepper" class="stepper" aria-label="progress"></nav>
+      <div class="content">
+        <div id="page" class="page"></div>
+        <div class="navrow">
+          <button type="button" id="btn-back" class="nav-btn secondary"></button>
+          <button type="button" id="btn-next" class="nav-btn primary"></button>
+        </div>
+        <div class="q-err" id="submit-err"></div>
+      </div>
+    </div>
   </main>
 
   <script src="config.js"></script>
