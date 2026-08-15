@@ -219,24 +219,6 @@
     });
 
     list.push({
-      id: "s2a", label: () => t("step_s2a"), subCount: 1,
-      render() {
-        return `<h2>${esc(t("s2a_heading"))}</h2>` +
-          radios("d_freq", t("dfreq_opts"), { label: t("dfreq_q") }) +
-          radios("d_share", t("dshare_opts"), { label: t("dshare_q") }) +
-          checks("d_context", t("dctx_opts"), { label: t("dctx_q"), otherIdx: 4, req: false }) +
-          textinput("d_topics", { label: t("dtopics_q"), note: t("dtopics_note") }) +
-          textarea("d_links", { req: false, label: t("dlinks_q"), note: t("dlinks_note"), rows: 2 });
-      },
-      validate() {
-        const miss = [];
-        ["d_freq", "d_share"].forEach((id) => { if (get(id) === undefined) miss.push(id); });
-        if (!String(get("d_topics") || "").trim()) miss.push("d_topics");
-        return miss;
-      },
-    });
-
-    list.push({
       id: "recall", label: () => t("step_recall"), subCount: 1,
       render() {
         const locked = !!state.meta.recallLockedAt;
@@ -280,6 +262,24 @@
         return miss;
       },
       afterRender() { applyLockToPage(); },
+    });
+
+    list.push({
+      id: "s2a", label: () => t("step_s2a"), subCount: 1,
+      render() {
+        return `<h2>${esc(t("s2a_heading"))}</h2>` +
+          radios("d_freq", t("dfreq_opts"), { label: t("dfreq_q") }) +
+          radios("d_share", t("dshare_opts"), { label: t("dshare_q") }) +
+          checks("d_context", t("dctx_opts"), { label: t("dctx_q"), otherIdx: 4, req: false }) +
+          textinput("d_topics", { label: t("dtopics_q"), note: t("dtopics_note") }) +
+          textarea("d_links", { req: false, label: t("dlinks_q"), note: t("dlinks_note"), rows: 2 });
+      },
+      validate() {
+        const miss = [];
+        ["d_freq", "d_share"].forEach((id) => { if (get(id) === undefined) miss.push(id); });
+        if (!String(get("d_topics") || "").trim()) miss.push("d_topics");
+        return miss;
+      },
     });
 
     // The respondent's own pattern is fleshed out immediately, while it is still fresh
