@@ -393,7 +393,7 @@
     list.push({
       id: "s7", label: () => t("step_s7"), subCount: 1,
       render() {
-        const uploadBlock = CFG.ENDPOINT
+        const uploadBlock = hasEndpoint()
           ? `<div class="q" data-q="upload">${qhead(fmt(t("upload_q"), { max: CFG.MAX_FILES, mb: CFG.MAX_FILE_MB }), false, t("upload_note"))}
               <input type="file" id="file_input" accept="image/*" multiple style="display:none">
               <button type="button" class="ghost-btn" id="file_pick">${esc(t("upload_pick"))}</button>
@@ -689,25 +689,95 @@
       return true;
     } catch (e) { return false; }
   }
-  async function postOnce(data) {
-    const res = await fetch(CFG.ENDPOINT, {
+  // ---------- delivery: endpoint chain + pending queue ----------
+  const PENDING_KEY = "mold_survey_pending";
+  function endpoints() {
+    const list = (CFG.ENDPOINTS || []).filter((e) => e && (e.url || e.email || e.key));
+    if (!list.length && CFG.ENDPOINT) list.push({ type: "apps_script", url: CFG.ENDPOINT });
+    return list;
+  }
+  const hasEndpoint = () => endpoints().length > 0;
+
+  async function sendTo(ep, data) {
+    if (ep.type === "formsubmit" || ep.type === "web3forms") {
+      // Third-party relays take flat form fields and cannot carry base64 uploads.
+      const slim = { ...data, files: [] };
+      const body = {
+        subject: "[Mold Survey] " + (data.clientRespId || ""),
+        respId: data.clientRespId || "",
+        lang: data.lang, src: data.src,
+        submittedAt: data.submittedAt, startedAt: data.startedAt,
+        email: (data.answers && data.answers.email) || "",
+        payload_json: JSON.stringify(slim),
+      };
+      if (ep.type === "web3forms") body.access_key = ep.key;
+      const url = ep.type === "web3forms"
+        ? "https://api.web3forms.com/submit"
+        : "https://formsubmit.co/ajax/" + encodeURIComponent(ep.email);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
+      });
+      const out = await res.json().catch(() => ({}));
+      const ok = res.ok && (out.success === true || out.success === "true" || out.ok === true);
+      if (!ok) throw new Error("relay rejected");
+      return { respId: data.clientRespId, via: ep.type };
+    }
+    // default: Apps Script web app
+    const res = await fetch(ep.url, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids CORS preflight for Apps Script
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids CORS preflight
       body: JSON.stringify(data),
     });
     const out = await res.json().catch(() => ({}));
     if (!res.ok || out.ok === false) throw new Error("bad response");
-    return out;
+    return { respId: out.respId || data.clientRespId, via: "apps_script" };
   }
-  async function postWithRetry(data, tries) {
-    for (let i = 0; i < tries; i++) {
-      try { return await postOnce(data); }
-      catch (e) {
-        if (i === tries - 1) return null;
-        await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+
+  // Try every configured endpoint, each with a couple of retries, before giving up.
+  async function deliver(data, roundsPerEndpoint) {
+    const eps = endpoints();
+    for (const ep of eps) {
+      for (let i = 0; i < roundsPerEndpoint; i++) {
+        try { return await sendTo(ep, data); }
+        catch (e) {
+          if (i < roundsPerEndpoint - 1) await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+        }
       }
     }
     return null;
+  }
+
+  // Responses that could not be delivered wait here and are retried automatically
+  // whenever the page is opened again or the browser regains connectivity.
+  function readPending() {
+    try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); } catch (e) { return []; }
+  }
+  function writePending(arr) {
+    try { localStorage.setItem(PENDING_KEY, JSON.stringify(arr)); } catch (e) { }
+  }
+  function queuePending(data) {
+    const arr = readPending().filter((d) => d.clientRespId !== data.clientRespId);
+    arr.push({ ...data, files: [] }); // uploads are not retained across sessions
+    writePending(arr);
+  }
+  function dropPending(id) {
+    writePending(readPending().filter((d) => d.clientRespId !== id));
+  }
+  let flushing = false;
+  async function flushPending() {
+    if (flushing || !hasEndpoint() || !navigator.onLine) return 0;
+    const arr = readPending();
+    if (!arr.length) return 0;
+    flushing = true;
+    let sent = 0;
+    for (const d of arr) {
+      const out = await deliver(d, 1);
+      if (out) { dropPending(d.clientRespId); sent++; }
+    }
+    flushing = false;
+    return sent;
   }
   async function submit() {
     const btn = $("#btn-next");
@@ -718,16 +788,22 @@
     save();
 
     let serverOut = null;
-    if (CFG.ENDPOINT) serverOut = await postWithRetry(data, 3);
+    if (hasEndpoint()) serverOut = await deliver(data, 3);
 
     state.submitted = true;
     if (serverOut) {
       try { localStorage.removeItem(STORE_KEY); } catch (e) { }
+      dropPending(data.clientRespId);
       renderDone({ saved: true, respId: serverOut.respId || data.clientRespId });
+    } else if (hasEndpoint()) {
+      // Endpoint exists but is unreachable: hold the response and retry by itself later.
+      queuePending(data);
+      downloadPayload(data);
+      renderDone({ saved: false, queued: true, respId: data.clientRespId, data });
     } else {
-      // No endpoint, or the server could not be reached: save the file automatically.
+      // Nothing configured to receive it: the file is the only delivery route.
       const ok = downloadPayload(data);
-      renderDone({ saved: false, respId: data.clientRespId, downloaded: ok, data });
+      renderDone({ saved: false, queued: false, respId: data.clientRespId, downloaded: ok, data });
     }
   }
   function renderDone(res) {
@@ -746,11 +822,14 @@
     } else {
       const subject = encodeURIComponent(fmt(t("mail_subject"), { id: res.respId || "" }));
       const body = encodeURIComponent(fmt(t("mail_body"), { id: res.respId || "" }));
+      const msg = res.queued
+        ? fmt(t("done_queued"), { id: res.respId || "" })
+        : (res.downloaded ? fmt(t("done_local_saved"), { id: res.respId || "" }) : t("done_local_failed"));
       box = `<div class="saved-box warn">
-          <p>${esc(res.downloaded ? fmt(t("done_local_saved"), { id: res.respId || "" }) : t("done_local_failed"))}</p>
-          <a class="ghost-btn" href="mailto:${esc(CFG.CONTACT_EMAIL)}?subject=${subject}&body=${body}">${esc(t("done_mail_btn"))}</a>
+          <p>${esc(msg)}</p>
+          ${res.queued ? "" : `<a class="ghost-btn" href="mailto:${esc(CFG.CONTACT_EMAIL)}?subject=${subject}&body=${body}">${esc(t("done_mail_btn"))}</a>`}
           <button type="button" class="ghost-btn" id="dl_json">${esc(t("submit_download"))}</button>
-          ${CFG.ENDPOINT ? `<button type="button" class="ghost-btn" id="retry_send">${esc(t("done_retry_btn"))}</button>` : ""}
+          ${hasEndpoint() ? `<button type="button" class="ghost-btn" id="retry_send">${esc(t("done_retry_btn"))}</button>` : ""}
           <div class="q-err" id="retry-msg"></div>
         </div>`;
     }
@@ -767,9 +846,10 @@
     if (retry) retry.addEventListener("click", async () => {
       retry.disabled = true;
       retry.textContent = t("submitting");
-      const out = await postWithRetry(res.data, 2);
+      const out = await deliver(res.data, 2);
       if (out) {
         try { localStorage.removeItem(STORE_KEY); } catch (e) { }
+        dropPending(res.respId);
         renderDone({ saved: true, respId: out.respId || res.respId });
       } else {
         retry.disabled = false;
@@ -792,6 +872,20 @@
     render();
   }
   window.addEventListener("DOMContentLoaded", () => {
+    // Anything left undelivered from an earlier visit goes out now, quietly.
+    flushPending();
+    window.addEventListener("online", () => flushPending());
+    setInterval(() => { if (readPending().length) flushPending(); }, 60000);
+    window.addEventListener("pagehide", () => {
+      // Last-ditch attempt that survives the page closing (Apps Script targets only).
+      if (!navigator.sendBeacon) return;
+      const eps = endpoints().filter((e) => e.type !== "formsubmit" && e.type !== "web3forms" && e.url);
+      if (!eps.length) return;
+      readPending().forEach((d) => {
+        try { navigator.sendBeacon(eps[0].url, new Blob([JSON.stringify(d)], { type: "text/plain;charset=utf-8" })); } catch (e) { }
+      });
+    });
+
     const resumed = restore();
     if (!state.lang) state.lang = detectLang();
     document.querySelectorAll(".lang-btn").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
