@@ -105,7 +105,7 @@
 
   // ---------- widgets ----------
   function qhead(label, req, note) {
-    return `<div class="q-label">${esc(label)} <span class="tag ${req ? "req" : "opt"}">${req ? t("required_mark") : t("optional_mark")}</span></div>` +
+    return `<div class="q-label">${esc(label)} <span class="tag ${req ? "tag-req" : "tag-opt"}">${req ? t("required_mark") : t("optional_mark")}</span></div>` +
       (note ? `<div class="q-note">${esc(note)}</div>` : "");
   }
   function radiosBare(id, opts) {
@@ -247,7 +247,10 @@
         }).join("");
         return `<h2>${esc(t("s2b_heading"))}</h2>
           <p>${esc(t("s2b_intro"))}</p>
-          <div class="def-box"><div class="def-h">${esc(t("mold_def_title"))}</div><p>${esc(t("mold_def_body"))}</p></div>
+          <div class="def-box"><div class="def-h">${esc(t("mold_def_title"))}</div>
+            <p class="def-lead">${esc(t("mold_def_lead"))}</p>
+            <ul class="def-list">${t("mold_def_bullets").map((b) => `<li><b>${esc(b.t)}</b> ${esc(b.d)}</li>`).join("")}</ul>
+          </div>
           <p class="ex-note">${esc(t("s2b_ex_note"))}</p>
           <div class="example"><h3>${esc(t("ex1_title"))}</h3><img src="assets/cards/card9_arggraph.png" alt=""><p class="ex-desc">${esc(t("ex1_desc"))}</p></div>
           <div class="example"><h3>${esc(t("ex2_title"))}</h3><img src="assets/cards/card10_figurecolor.png" alt=""><p class="ex-desc">${esc(t("ex2_desc"))}</p></div>
@@ -255,9 +258,9 @@
           <div class="q" data-q="r_p1" data-minlen="20">${qhead(t("recall_q"), true, t("recall_note"))}
             <label class="sub-lab">${esc(t("recall_p1"))}</label>
             <textarea id="r_p1" rows="2">${esc(get("r_p1") || "")}</textarea>
-            <label class="sub-lab">${esc(t("recall_p2"))} <span class="tag opt">${esc(t("optional_mark"))}</span></label>
+            <label class="sub-lab">${esc(t("recall_p2"))} <span class="tag tag-opt">${esc(t("optional_mark"))}</span></label>
             <textarea id="r_p2" rows="2">${esc(get("r_p2") || "")}</textarea>
-            <label class="sub-lab">${esc(t("recall_p3"))} <span class="tag opt">${esc(t("optional_mark"))}</span></label>
+            <label class="sub-lab">${esc(t("recall_p3"))} <span class="tag tag-opt">${esc(t("optional_mark"))}</span></label>
             <textarea id="r_p3" rows="2">${esc(get("r_p3") || "")}</textarea>
             <div class="q-err"></div>
           </div>
