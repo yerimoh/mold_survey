@@ -124,7 +124,7 @@ window.I18N = {
 
     // ---------- S4 카드 ----------
     s4_heading: "4. 저희가 찾은 패턴들",
-    s4_note: "카드 {i} / 8 · 제시 순서는 무작위입니다.",
+    s4_note: "카드 {i} / {n} · 제시 순서는 무작위입니다.",
     s4_img_caption: "왼쪽: AI가 처음부터 끝까지 수행한 논문 · 오른쪽: 같은 주제의 사람 논문",
     seen_q: "이 패턴을 실제로 본 적이 있습니까?",
     seen_lo: "전혀 없다",
@@ -134,14 +134,56 @@ window.I18N = {
     acted_q: "리뷰나 피드백에서 실제로 이 점을 지적한 적이 있습니까?",
     acted_opts: ["있다", "없다"],
     cards: {
-      crn: { title: "섹션들이 서로를 부르지 않는다", stat: "다른 섹션을 가리키는 참조 비율 0.086 대 0.505 (길이 정규화, 약 6배). AI 논문의 65%는 그런 참조가 정확히 0건, 사람 논문은 1.3%." },
-      pb: { title: "연구 문제를 딱 한 편의 선행 논문에 걸어둔다", stat: "문제 제기가 단일 선행 논문에 의존하는 비율 0.345 대 0.121 (약 2.8배)." },
-      mr: { title: "같은 주장과 같은 숫자를 섹션마다 다시 말한다", stat: "섹션 간 어구 중복 0.057 대 0.021." },
-      esa: { title: "평가가 한 모델, 한 데이터셋에서 끝난다", stat: "논문당 비교에 쓴 모델 수 1.2~1.8 대 5.6." },
-      cp: { title: "선행연구를 한 편씩 나열만 하고 서로 연결하지 않는다", stat: "“고쳐 써라”를 10라운드 반복해도 사람과의 격차가 40% 이하만 닫혔습니다." },
-      ffm: { title: "모든 그림이 하나의 템플릿으로 수렴한다", stat: "논문 사이 그림 형식의 단조성 차이 δ = −0.826." },
-      trap: { title: "한계와 실패 사례를 제대로 안 적는다", stat: "" },
-      exec: { title: "돌리기로 진단한 실험을, 여력이 남았는데도 안 돌린다", stat: "소요 시간은 8~19배 부풀려 보고했고, 실제 변경 이력은 없었습니다." },
+      crn: {
+        title: "섹션들이 서로를 부르지 않는다",
+        desc: "사람이 쓴 논문은 “3.2절의 설정을 그대로 따른다”, “이 값이 왜 튀는지는 5절에서 다룬다”처럼 섹션들이 서로를 붙듭니다. AI 논문은 각 섹션이 자기 안에서만 끝나고, 참조를 달아도 같은 섹션 안의 그림과 표만 가리킵니다. 문장 하나하나는 매끄러운데, 논문을 하나로 묶는 실이 없습니다.",
+        stat: "다른 섹션을 가리키는 참조 비율 0.086 대 0.505 (길이 정규화, 약 6배). AI 논문의 65%는 그런 참조가 정확히 0건, 사람 논문은 1.3%.",
+      },
+      pb: {
+        title: "연구 문제를 딱 한 편의 선행 논문에 걸어둔다",
+        desc: "사람은 여러 갈래의 한계를 모아 문제를 세우는데, AI는 논문 한 편을 골라 그 논문의 한계를 그대로 연구 문제로 삼습니다. 문제도 방법도 그 한 편의 궤도 안에서 돌고, 서론이 훑는 문헌의 폭도 절반 이하입니다. 여섯 편을 읽고 한 편에 꽂힌 모양새입니다.",
+        stat: "문제 제기가 단일 선행 논문에 의존하는 비율 0.345 대 0.121 (약 2.8배). 그 한 편에서 방법까지 이어받는 비율은 0.60 대 0.31.",
+      },
+      mr: {
+        title: "같은 주장과 같은 숫자를 섹션마다 다시 말한다",
+        desc: "초록에서 본 주장과 수치를 서론에서 또 만나고, 결과에서 또, 결론에서 또 만납니다. 섹션이 넘어가도 새로 알게 되는 것이 없는, 매끈하지만 속이 빈 진행입니다. 한 문단 안의 반복이 아니라 서로 다른 섹션 사이의 중복이라, 한 화면만 봐서는 안 보입니다.",
+        stat: "섹션 쌍 사이 4-gram 어구 중복 0.057 대 0.021 (약 2.7배).",
+      },
+      esa: {
+        title: "평가가 한 모델, 한 데이터셋에서 끝난다",
+        desc: "주장은 “전반적으로 향상된다”인데 증거는 모델 하나에 벤치마크 한두 개입니다. 모델 수 × 데이터셋 수로 센 평가 면적이 사람 논문의 6분의 1입니다. 주장이 미치는 반경과 증거가 미치는 반경의 차이가 이 패턴의 정체입니다.",
+        stat: "평가 셀(모델×데이터셋) 3.1 대 18.4 (약 5.9배).",
+      },
+      cp: {
+        title: "선행연구를 한 편씩 나열만 하고 서로 연결하지 않는다",
+        desc: "사람의 관련연구는 “A와 B는 같은 가정을 공유하는데, C가 그 가정을 반박했다”처럼 선행연구끼리 엮입니다. AI는 한 문장에 한 편씩 요약을 줄 세울 뿐, 인용한 논문들 사이에 선을 긋지 않습니다. 대조하는 말투는 흉내 내도, 논문과 논문이 실제로 연결되는 밀도는 못 흉내 냅니다.",
+        stat: "선행연구끼리 연결되는 밀도 0.42 대 1.89 (약 5배). “고쳐 써라”를 10라운드 반복해도 격차의 40% 이하만 닫혔습니다.",
+      },
+      bs: {
+        title: "비교 상대를 자기 변형들로 채운다",
+        desc: "결과 표의 비교 대상이 남의 방법이 아니라 자기 방법의 변형, 어블레이션, 이름 없는 단순 베이스라인으로 채워져 있습니다. 실명이 있는 외부 방법과 붙는 비교가 사람 논문의 3분의 1이고, 비교 대상이 걸치는 연도의 폭도 절반입니다. 질 것 같은 싸움은 표에 올리지 않는 겁니다.",
+        stat: "논문당 실명 외부 베이스라인 1.7 대 5.3, 비교 대상의 연도 폭 2.0 대 4.2년.",
+      },
+      eng: {
+        title: "자기 숫자만 있고 남의 숫자가 없다",
+        desc: "“BERT는 84.3인데[인용] 우리는 86.1”처럼, 사람 논문은 선행연구의 수치를 본문에 끌어와 자기 결과를 그 옆에 세웁니다. AI 논문의 숫자는 거의 전부 자기 표 안에서만 삽니다. 숫자는 많은데, 그 숫자가 바깥 세계 어디에 놓이는지 말해주는 앵커가 없습니다.",
+        stat: "인용 옆에 등장하는 외부 수치가 논문당 0.97 대 4.01. 저희가 시험한 어떤 리비전 루프도 이 값을 움직이지 못했습니다.",
+      },
+      ffm: {
+        title: "모든 그림이 하나의 템플릿으로 수렴한다",
+        desc: "한 논문 안의 그림들이 전부 같은 가로세로 비율, 같은 크기입니다. 어떤 데이터든 하나의 플로팅 템플릿에서 뽑혀 나오기 때문입니다. 사람의 그림은 담는 데이터에 맞춰 모양과 크기가 제각각입니다. AI 그림 348장과 사람 그림 1,203장을 재서 나온 차이입니다.",
+        stat: "논문 내 그림 형식의 단조성 δ = −0.826 (낮을수록 AI 쪽).",
+      },
+      trap: {
+        title: "한계와 실패 사례를 제대로 안 적는다",
+        desc: "논문 끝의 한계(Limitations) 절이 형식적인 두어 문장으로 끝나거나, 실패한 실험과 방법이 안 통하는 조건이 본문 어디에도 없습니다.",
+        stat: "",
+      },
+      exec: {
+        title: "돌리기로 진단한 실험을, 여력이 남았는데도 안 돌린다",
+        desc: "리비전 계획에는 “이 실험이 필요하다”고 스스로 적어 놓고, 시간과 예산이 남는데도 돌리지 않습니다. 로그를 대조하면 걸렸다고 보고한 시간은 실제의 8~19배로 부풀려져 있고, 코드 변경 이력은 없습니다. 논문만 봐서는 절대 안 보이고, 실행 기록을 열어야 보입니다.",
+        stat: "8개 세션 전수에서 보고 시간이 실측의 8~19배. 코드 diff는 0줄.",
+      },
     },
     s4wrap_heading: "8가지를 모두 보셨습니다",
     top2_q: "방금 본 8가지 중 “이건 진짜다, 나도 계속 느꼈다”에 가장 가까운 것은 무엇입니까? (최대 2개)",
@@ -345,7 +387,7 @@ window.I18N = {
     s3_more: "See more: ",
 
     s4_heading: "4. The patterns we found",
-    s4_note: "Card {i} / 8 · shown in random order.",
+    s4_note: "Card {i} / {n} · shown in random order.",
     s4_img_caption: "Left: paper conducted end-to-end by AI · Right: human paper on the same topic (labels in the image are in Korean)",
     seen_q: "Have you actually seen this pattern?",
     seen_lo: "Never",
@@ -355,14 +397,56 @@ window.I18N = {
     acted_q: "Have you actually pointed this out in a review or in feedback?",
     acted_opts: ["Yes", "No"],
     cards: {
-      crn: { title: "Sections never call each other", stat: "Share of references pointing to another section: 0.086 vs 0.505 (length-normalized, ~6×). 65% of AI papers have exactly zero such references; 1.3% of human papers do." },
-      pb: { title: "The research problem hangs on a single prior paper", stat: "Rate of single-source problem framing: 0.345 vs 0.121 (~2.8×)." },
-      mr: { title: "The same claim and the same numbers repeat in every section", stat: "Cross-section phrase duplication: 0.057 vs 0.021." },
-      esa: { title: "Evaluation ends at one model, one dataset", stat: "Models compared per paper: 1.2–1.8 vs 5.6." },
-      cp: { title: "Prior work is listed one by one, never connected", stat: "After 10 rounds of “rewrite this,” less than 40% of the gap to human papers closed." },
-      ffm: { title: "Every figure converges to one template", stat: "Cross-paper figure-format monotony: δ = −0.826." },
-      trap: { title: "Limitations and failure cases are not properly written", stat: "" },
-      exec: { title: "Experiments it diagnosed as necessary are never run, even with budget left", stat: "Reported runtimes were inflated 8–19×, with no actual change history." },
+      crn: {
+        title: "Sections never call each other",
+        desc: "Human papers keep grabbing their own parts: “we follow the setup of §3.2,” “we return to this outlier in §5.” In AI papers each section is complete in itself, and even when references appear they point only at figures and tables inside the same section. Every sentence reads fine; the thread that ties the paper into one thing is missing.",
+        stat: "Share of references pointing to another section: 0.086 vs 0.505 (length-normalized, ~6×). 65% of AI papers have exactly zero such references; 1.3% of human papers do.",
+      },
+      pb: {
+        title: "The research problem hangs on a single prior paper",
+        desc: "Humans assemble a problem from several strands of limitations. The AI picks one paper and adopts that paper's limitation as the research problem, wholesale. Problem and method both orbit that one paper, and the introduction surveys less than half the breadth of literature. It read six papers and latched onto one.",
+        stat: "Single-source problem framing: 0.345 vs 0.121 (~2.8×). Among those, the method is inherited from the same paper at 0.60 vs 0.31.",
+      },
+      mr: {
+        title: "The same claim and the same numbers repeat in every section",
+        desc: "The claim and the figure you saw in the abstract greet you again in the introduction, again in the results, again in the conclusion. Sections advance but nothing new arrives — a smooth surface over a hollow interior. Because the duplication is between sections rather than within a paragraph, no single screen of text shows it.",
+        stat: "Cross-section 4-gram phrase overlap: 0.057 vs 0.021 (~2.7×).",
+      },
+      esa: {
+        title: "Evaluation ends at one model, one dataset",
+        desc: "The claim says “improves overall”; the evidence is one model on one or two benchmarks. Counting models × datasets, the evaluation surface is one sixth of the human baseline. The pattern, at bottom, is a mismatch between the radius of the claim and the radius of the evidence.",
+        stat: "Evaluation cells (models × datasets): 3.1 vs 18.4 (~5.9×).",
+      },
+      cp: {
+        title: "Prior work is listed one by one, never connected",
+        desc: "A human related-work section weaves the cited papers together: “A and B share an assumption that C later refuted.” The AI lines up one summary per sentence and never draws a line between the works it cites. It can imitate the contrastive phrasing, but not the density of actual connections between papers.",
+        stat: "Work-to-work connection density: 0.42 vs 1.89 (~5×). Ten rounds of “rewrite this” closed less than 40% of the gap.",
+      },
+      bs: {
+        title: "The comparison table is filled with its own variants",
+        desc: "The rows of the results table are not other people's methods but the paper's own variants, ablations, and nameless generic baselines. Named external methods appear at a third of the human rate, and the year range the comparisons span is half. Fights it might lose simply don't make it into the table.",
+        stat: "Named external baselines per paper: 1.7 vs 5.3; year span of comparisons: 2.0 vs 4.2 years.",
+      },
+      eng: {
+        title: "Its own numbers, and nobody else's",
+        desc: "“BERT reaches 84.3 [cite]; we reach 86.1” — human papers pull prior-work numbers into the text and set their own result beside them. In AI papers the numbers live almost entirely inside the paper's own tables. There are plenty of numbers, and no anchor telling you where they sit in the outside world.",
+        stat: "External numbers appearing next to citations: 0.97 vs 4.01 per paper. No revision loop we tested moved this value.",
+      },
+      ffm: {
+        title: "Every figure converges to one template",
+        desc: "Within one AI paper, every figure has the same aspect ratio and the same size, because they all come off a single plotting template. Human figures are shaped and sized around the data each one carries. Measured on 348 AI figures against 1,203 human figures.",
+        stat: "Within-paper figure-format monotony: δ = −0.826 (lower = more AI-like).",
+      },
+      trap: {
+        title: "Limitations and failure cases are not properly written",
+        desc: "The Limitations section is two boilerplate sentences, or the paper nowhere mentions a failed experiment or a condition under which the method breaks.",
+        stat: "",
+      },
+      exec: {
+        title: "Experiments it diagnosed as necessary are never run, even with budget left",
+        desc: "The revision plan says, in its own words, “this experiment is needed” — and then, with time and budget remaining, it never runs. Check the logs and the reported wall-clock is inflated 8–19× over the real one, with zero lines of code changed. Invisible from the paper alone; you have to open the execution records.",
+        stat: "Across all eight sessions, reported effort was 8–19× measured effort. Code diff: zero lines.",
+      },
     },
     s4wrap_heading: "You've seen all 8",
     top2_q: "Of the 8 you just saw, which is closest to “this is real — I kept feeling this”? (up to 2)",

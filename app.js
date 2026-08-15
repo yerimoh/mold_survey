@@ -72,17 +72,23 @@
     return a;
   }
 
-  const CARD_KEYS = ["crn", "pb", "mr", "esa", "cp", "ffm", "trap", "exec"];
+  // 10 cards = the paper's 7 provisional-registry candidates (CRN, PB, MR, ESA, CP, BS, ENG)
+  // + FFM (hunt0727 visualization flagship) + trap card (acquiescence control) + exec (execution mold).
+  // Argument_Graph and Visualization(color) are spent as the two S2b examples (priming-excluded axes).
+  const CARD_KEYS = ["crn", "pb", "mr", "esa", "cp", "bs", "eng", "ffm", "trap", "exec"];
   const CARD_IMG = {
     crn: "assets/cards/card1_crossref.png",
     pb: "assets/cards/card2_problem.png",
     mr: "assets/cards/card3_redundancy.png",
     esa: "assets/cards/card4_evalsurface.png",
     cp: "assets/cards/card5_positioning.png",
+    bs: null, // no card image yet — text card with stat box
+    eng: null, // no card image yet — text card with stat box
     ffm: "assets/cards/card6_figuremonotony.png",
     trap: null, // trap card: text only, no numbers (by design)
     exec: "assets/cards/card8_execution.png",
   };
+  const N_CARDS = CARD_KEYS.length;
   const RECALL_IDS = ["r_p1", "r_p2", "r_p3", "r_contrast"];
 
   // ---------- widgets ----------
@@ -280,17 +286,18 @@
     });
 
     list.push({
-      id: "cards", label: () => t("step_cards"), subCount: 9, // 8 cards + wrap
-      subLabel(sub) { return sub < 8 ? fmt(t("wz_card_sub"), { i: sub + 1, n: 8 }) : t("s4wrap_heading"); },
+      id: "cards", label: () => t("step_cards"), subCount: N_CARDS + 1, // cards + wrap
+      subLabel(sub) { return sub < N_CARDS ? fmt(t("wz_card_sub"), { i: sub + 1, n: N_CARDS }) : t("s4wrap_heading"); },
       render(sub) {
-        if (sub < 8) {
+        if (sub < N_CARDS) {
           const key = order[sub];
           const card = t("cards")[key];
           const img = CARD_IMG[key];
           return `<h2>${esc(t("s4_heading"))}</h2>
-            <div class="card-note">${esc(fmt(t("s4_note"), { i: sub + 1 }))}</div>
+            <div class="card-note">${esc(fmt(t("s4_note"), { i: sub + 1, n: N_CARDS }))}</div>
             <div class="mold-card ${img ? "" : "text-card"}">
               <h3>${esc(card.title)}</h3>
+              ${card.desc ? `<p class="card-desc">${esc(card.desc)}</p>` : ""}
               ${img ? `<img src="${img}" alt="">` : ""}
               ${img && state.lang === "en" ? `<div class="img-caption">${esc(t("s4_img_caption"))}</div>` : ""}
               ${card.stat && (!img || state.lang === "en") ? `<div class="card-stat">${esc(card.stat)}</div>` : ""}
@@ -306,7 +313,7 @@
       },
       validate(sub) {
         const miss = [];
-        if (sub < 8) {
+        if (sub < N_CARDS) {
           const key = order[sub];
           if (get("c_" + key + "_seen") === undefined) miss.push("c_" + key + "_seen");
           if (get("c_" + key + "_named") === undefined) miss.push("c_" + key + "_named");

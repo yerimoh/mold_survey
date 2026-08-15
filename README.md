@@ -56,6 +56,25 @@ RECRUITMENT.md                     # 모집 문안 (메일/슬랙, ko/en)
 - [ ] 응답 후 `responses` 시트에서 시작~제출 소요시간이 비정상적으로 짧은(4분 미만) 건 제외 규칙 확인
 - [ ] 영어 배포 전: 카드 이미지가 한국어라 EN 모드는 캡션으로 보완 중 — 필요하면 `meeting/0927/img/make_cards*.py`로 EN 카드 재생성
 
+## 카드 커버리지 (artifact-ai2science 4패밀리 대비)
+
+카드 10장 = **논문 provisional registry 7종 전부** + FFM + 함정 카드 + execution:
+
+| 카드 | 몰드 | 근거 |
+|---|---|---|
+| crn | Structural/Cross-Reference_Network | registry L3 |
+| mr | Structural/Macro_Redundancy | registry L2 |
+| pb | Content/Problem_Borrowing | registry L3 |
+| esa | Content/Evaluation_Surface_Area | registry L3 |
+| cp | Content/Comparative_Positioning | registry L3 |
+| bs | Content/Baseline_Sandbagging | registry L3 (v3에서 추가) |
+| eng | Cross-output/External_Number_Grounding | registry L3† (v3에서 추가) |
+| ffm | Cross-output/new_Figure_Format_Monotony | hunt0727 시각화 flagship |
+| trap | (몰드 아님) 한계 서술 | 묵종 편향 검출용, 실측에선 AI가 사람만큼 잘함 |
+| exec | Execution (Plan_Execution_Gap+Success_Theater) | 실행 몰드, S5B에서 전수 보완 |
+
+**의도적으로 카드가 아닌 것**: Argument_Graph와 Visualization(색)은 S2b 예시 2장으로 소진(프라이밍 제외 축, SECTION1_EXAMPLES 합의). AI_Writing_Style은 논문의 negative control이라 제외. Method는 0710 감사에서 드랍. 나머지 new_ 계열 9개(Manufactured_Gap_Framing, Caption_Compensation, Foundational_Amnesia, NonDataInk_Dominance, Document_Rhythm_Flatness, Frame_Scaffolding, Given_New_Violation, Logical_Chain_Sparsity, Rhetorical_Reversal)는 검증 미완이라 카드 자격 미달, 서베이 S5로 커뮤니티 검증 수요를 받는 쪽.
+
 ## 분석 시 주의 (사전 등록 사항)
 
 - **프라이밍 제외 축**: S2b 예시로 보여준 두 축(서론 논증 구조, 그림 색)은 자유회상 분석에서 프라이밍된 것으로 표시하고 감지율 대 명명율 격차 지표에서 제외 (`SECTION1_EXAMPLES.md` 합의).

@@ -94,6 +94,7 @@ textarea:focus, input:focus { outline: 2px solid var(--accent); border-color: va
 .card-note { font-size: 13px; color: var(--ink-soft); margin-bottom: 10px; }
 .mold-card { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; background: #fbfcfd; }
 .mold-card h3 { margin: 0 0 8px; font-size: 18px; }
+.card-desc { font-size: 14.5px; color: var(--ink); margin: 0 0 10px; }
 .mold-card.text-card { padding: 26px 22px; }
 .img-caption { font-size: 12.5px; color: var(--ink-soft); }
 .card-stat { margin-top: 8px; font-size: 14px; padding: 8px 12px; background: #eef4fa; border-radius: 8px; }

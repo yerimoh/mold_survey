@@ -25,5 +25,6 @@ window.SURVEY_CONFIG = {
   MAX_FILES: 2,
   MAX_FILE_MB: 3,
 
-  VERSION: "v2-0815",
+  VERSION: "v3-0815", // v3: 카드 8→10장 (레지스트리 7종 완비 + BS/ENG 추가), 카드 설명문 신설
+
 };
