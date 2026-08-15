@@ -18,10 +18,10 @@ window.SURVEY_CONFIG = {
   //
   // 둘 다 넣어 두면 A가 죽어도 B로 저장되므로 가장 안전합니다.
   ENDPOINTS: [
-    // A. 켜려면 배포 후 url만 채우면 됩니다. 채워지면 이쪽이 먼저 쓰이고, 실패 시 B로 넘어갑니다.
-    // { type: "apps_script", url: "" },
+    // A. 주 경로 — 응답이 bora2267474@gmail.com 드라이브의 mold_survey_responses 시트에 쌓입니다.
+    { type: "apps_script", url: "https://script.google.com/macros/s/AKfycby3FELVGgqIJOcncbiBoNjdPt_kwh0229-ghIwFkBwBrlIDK2iZ3JZJK0V4sSIJ7K5c/exec" },
 
-    // B. 활성화 완료되면 응답이 이 주소로 메일 전송됩니다. (서버 불필요)
+    // B. 백업 — A가 응답하지 않을 때만 쓰입니다. 이 주소로 메일이 옵니다.
     { type: "formsubmit", email: "yerim.oh@vision.snu.ac.kr" },
   ],
 

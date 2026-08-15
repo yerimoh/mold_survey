@@ -21,6 +21,12 @@ else
 fi
 
 echo "== POST 확인 (테스트 행 1건이 시트에 들어갑니다) =="
-curl -sL -X POST "$U" -H "Content-Type: text/plain;charset=utf-8" \
-  -d '{"version":"check","lang":"ko","src":"check_sh","clientRespId":"check-0001","answers":{"m1_name":"연결 테스트 행 - 삭제해도 됩니다"},"files":[]}'
-echo
+# Apps Script는 POST를 받고 302로 결과 페이지를 가리킵니다. curl -L은 302에서 POST를 GET으로
+# 바꿔버려 엉뚱한 오류처럼 보이므로, 리다이렉트를 따라가지 않고 302 자체를 성공으로 판정합니다.
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$U" \
+  -H "Content-Type: text/plain;charset=utf-8" \
+  -d '{"version":"check","lang":"ko","src":"check_sh","clientRespId":"check-0001","answers":{"m1_name":"연결 테스트 행 - 삭제해도 됩니다"},"files":[]}')
+case "$CODE" in
+  200|302) echo "✅ POST 정상 (HTTP $CODE) — 시트에 테스트 행이 들어갔습니다";;
+  *)       echo "❌ POST 실패 (HTTP $CODE)"; exit 3;;
+esac
