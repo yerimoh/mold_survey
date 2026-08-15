@@ -18,8 +18,11 @@ window.SURVEY_CONFIG = {
   //
   // 둘 다 넣어 두면 A가 죽어도 B로 저장되므로 가장 안전합니다.
   ENDPOINTS: [
+    // A. 켜려면 배포 후 url만 채우면 됩니다. 채워지면 이쪽이 먼저 쓰이고, 실패 시 B로 넘어갑니다.
     // { type: "apps_script", url: "" },
-    // { type: "formsubmit", email: "yerim.oh@vision.snu.ac.kr" },
+
+    // B. 활성화 완료되면 응답이 이 주소로 메일 전송됩니다. (서버 불필요)
+    { type: "formsubmit", email: "yerim.oh@vision.snu.ac.kr" },
   ],
 
   // (구버전 호환) 단일 Apps Script URL. ENDPOINTS가 비어 있을 때만 사용됩니다.

@@ -393,7 +393,7 @@
     list.push({
       id: "s7", label: () => t("step_s7"), subCount: 1,
       render() {
-        const uploadBlock = hasEndpoint()
+        const uploadBlock = canReceiveFiles()
           ? `<div class="q" data-q="upload">${qhead(fmt(t("upload_q"), { max: CFG.MAX_FILES, mb: CFG.MAX_FILE_MB }), false, t("upload_note"))}
               <input type="file" id="file_input" accept="image/*" multiple style="display:none">
               <button type="button" class="ghost-btn" id="file_pick">${esc(t("upload_pick"))}</button>
@@ -697,6 +697,9 @@
     return list;
   }
   const hasEndpoint = () => endpoints().length > 0;
+  // Email relays cannot carry base64 uploads, so the screenshot question only appears
+  // when a destination that actually stores files is configured.
+  const canReceiveFiles = () => endpoints().some((e) => e.type !== "formsubmit" && e.type !== "web3forms");
 
   async function sendTo(ep, data) {
     if (ep.type === "formsubmit" || ep.type === "web3forms") {
@@ -721,7 +724,12 @@
       });
       const out = await res.json().catch(() => ({}));
       const ok = res.ok && (out.success === true || out.success === "true" || out.ok === true);
-      if (!ok) throw new Error("relay rejected");
+      if (!ok) {
+        // Most common cause: the relay has not been activated yet (one click in the
+        // confirmation email). Queue the response; it goes out once activation is done.
+        console.warn("[mold_survey] relay did not accept the response:", out.message || out);
+        throw new Error("relay rejected");
+      }
       return { respId: data.clientRespId, via: ep.type };
     }
     // default: Apps Script web app
