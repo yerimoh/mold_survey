@@ -130,6 +130,17 @@ python3 tools/responses_to_csv.py ~/Downloads/mold_survey_responses*.csv -o resp
 
 **의도적으로 카드가 아닌 것**: Argument_Graph와 Visualization(색)은 S2b 예시 2장으로 소진(프라이밍 제외 축, SECTION1_EXAMPLES 합의). AI_Writing_Style은 논문의 negative control이라 제외. Method는 0710 감사에서 드랍. 나머지 new_ 계열 9개(Manufactured_Gap_Framing, Caption_Compensation, Foundational_Amnesia, NonDataInk_Dominance, Document_Rhythm_Flatness, Frame_Scaffolding, Given_New_Violation, Logical_Chain_Sparsity, Rhetorical_Reversal)는 검증 미완이라 카드 자격 미달, 서베이 S5로 커뮤니티 검증 수요를 받는 쪽.
 
+## 몰드 정의를 응답자에게 어떻게 제시하는가
+
+자유회상 문항 위 정의 상자에 **0815 미팅에서 확정한 세 축**(녹취 §140·143 "세퍼레이션 글로벌리티 로버스트니스 이렇게 세 가지 축")을 응답자 언어로 풀어 제시합니다.
+기존 구글폼의 분리성·전역성·강건성 항목을 잇되, 강건성은 "프롬프트 한 번으로 안 지워진다"만으로는 뜻이 전달되지 않아
+**무엇이 문제인지 짚어주고 여러 번 반복해 고쳐 써도 남아야 하며, 저희는 실제로 5~10라운드를 돌린다**까지 밝힙니다.
+
+이로써 자유회상은 엄밀한 의미의 criteria-blind가 아닙니다. 대신 얻는 것이 큽니다. 기준을 감추면 "delve를 자주 쓴다" 같은
+표면 응답이 대부분이 되고, 그건 논문이 명시적으로 배제하는 층위입니다(§1 "surface language is polished"). 반대로
+**naming gap(G_name, G_act)은 카드별 seen/named/acted에서 계산**하므로 이 결정에 영향을 받지 않습니다.
+분석 시에는 자유회상 응답을 "세 축을 안내받은 상태의 회상"으로 기술해야 합니다.
+
 ## 분석 시 주의 (사전 등록 사항)
 
 - **프라이밍 제외 축**: S2b 예시로 보여준 두 축(서론 논증 구조, 그림 색)은 자유회상 분석에서 프라이밍된 것으로 표시하고 감지율 대 명명율 격차 지표에서 제외 (`SECTION1_EXAMPLES.md` 합의).
