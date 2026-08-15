@@ -8,6 +8,10 @@
  *     - 액세스 권한: 모든 사용자 (Anyone)
  *  3. 발급된 웹 앱 URL을 mold_survey 리포의 config.js ENDPOINT에 붙여넣고 push
  *
+ * 배포 확인: 웹 앱 URL을 브라우저로 열어 {"ok":true} 가 보이면 정상입니다.
+ * 이 URL을 config.js ENDPOINT에 넣기 전까지는, 설문 제출 시 응답이 서버에 저장되지 않고
+ * 응답자 PC에 파일로 자동 저장된 뒤 메일로 보내도록 안내됩니다(유실은 없지만 수작업이 늘어남).
+ *
  * 동작:
  *  - 첫 요청 시 "mold_survey_responses" 스프레드시트와 "mold_survey_uploads" Drive 폴더를 자동 생성
  *  - responses 시트: 이메일을 제외한 응답 전체 (분석용)
@@ -51,7 +55,7 @@ function getSheet_(ss, name, headers) {
 }
 
 var RESP_HEADERS = [
-  "respId", "submittedAt", "startedAt", "recallLockedAt", "lang", "src", "version",
+  "respId", "clientRespId", "submittedAt", "startedAt", "recallLockedAt", "lang", "src", "version",
   "totalMinutes", "cardOrder", "honeypot", "nFiles", "fileLinks",
   "answers_json", "pageTimes_json", "ua", "screen",
 ];
@@ -100,7 +104,7 @@ function doPost(e) {
     var ss = getSpreadsheet_();
     var respSh = getSheet_(ss, "responses", RESP_HEADERS);
     respSh.appendRow([
-      respId, data.submittedAt || "", data.startedAt || "", data.recallLockedAt || "", data.lang || "", data.src || "", data.version || "",
+      respId, data.clientRespId || "", data.submittedAt || "", data.startedAt || "", data.recallLockedAt || "", data.lang || "", data.src || "", data.version || "",
       totalMin, JSON.stringify(data.cardOrder || []), data.honeypot || "", files.length, fileLinks.join(" "),
       JSON.stringify(rest), JSON.stringify(data.pageTimesMs || {}), data.ua || "", data.screen || "",
     ]);

@@ -129,6 +129,11 @@ textarea.locked { background: #f0f1f4; color: var(--ink-soft); }
 .resume-bar { background: #eef4fa; border-bottom: 1px solid var(--line); padding: 8px 16px; font-size: 14px; text-align: center; }
 .resume-bar button { margin-left: 10px; font-size: 13px; border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 6px; padding: 2px 10px; cursor: pointer; }
 .submit-fallback { margin-top: 16px; padding: 14px; border: 1px solid var(--warn-line); background: var(--warn-bg); border-radius: 8px; }
+.saved-box { margin: 14px 0 18px; padding: 12px 16px; border-radius: 8px; font-size: 14.5px; }
+.saved-box.ok { background: #eaf5ee; border: 1px solid #a9d3ba; color: #23573a; }
+.saved-box.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); }
+.saved-box.warn p { margin: 0 0 10px; }
+.saved-box a.ghost-btn { display: inline-block; text-decoration: none; }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }

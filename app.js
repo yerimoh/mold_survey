@@ -646,6 +646,12 @@
   }
 
   // ---------- submit ----------
+  const ARCHIVE_KEY = STORE_KEY + "_submitted";
+  function newRespId() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.random().toString(36).slice(2, 7)}`;
+  }
   function payload() {
     const hp = document.getElementById("hp_website");
     return {
@@ -654,6 +660,7 @@
       src: state.meta.src,
       ua: state.meta.ua,
       screen: state.meta.screen,
+      clientRespId: state.meta.clientRespId || (state.meta.clientRespId = newRespId()),
       startedAt: state.meta.startedAt,
       submittedAt: new Date().toISOString(),
       recallLockedAt: state.meta.recallLockedAt,
@@ -664,55 +671,113 @@
       files: state.files,
     };
   }
+  // Keep a copy in this browser no matter what happens to the network.
+  function archiveLocally(data) {
+    try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify({ ...data, files: [] })); } catch (e) { }
+  }
+  function downloadPayload(data) {
+    try {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mold_survey_" + data.clientRespId + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 20000);
+      return true;
+    } catch (e) { return false; }
+  }
+  async function postOnce(data) {
+    const res = await fetch(CFG.ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids CORS preflight for Apps Script
+      body: JSON.stringify(data),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || out.ok === false) throw new Error("bad response");
+    return out;
+  }
+  async function postWithRetry(data, tries) {
+    for (let i = 0; i < tries; i++) {
+      try { return await postOnce(data); }
+      catch (e) {
+        if (i === tries - 1) return null;
+        await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+      }
+    }
+    return null;
+  }
   async function submit() {
     const btn = $("#btn-next");
     btn.disabled = true;
     btn.textContent = t("submitting");
     const data = payload();
-    if (!CFG.ENDPOINT) { fallback(data, fmt(t("submit_no_endpoint"), { email: CFG.CONTACT_EMAIL })); return; }
-    try {
-      const res = await fetch(CFG.ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids CORS preflight for Apps Script
-        body: JSON.stringify(data),
-      });
-      const out = await res.json().catch(() => ({}));
-      if (!res.ok || out.ok === false) throw new Error("bad response");
-      state.submitted = true;
+    archiveLocally(data); // before anything can fail
+    save();
+
+    let serverOut = null;
+    if (CFG.ENDPOINT) serverOut = await postWithRetry(data, 3);
+
+    state.submitted = true;
+    if (serverOut) {
       try { localStorage.removeItem(STORE_KEY); } catch (e) { }
-      renderDone();
-    } catch (e) {
-      fallback(data, fmt(t("submit_fail"), { email: CFG.CONTACT_EMAIL }));
+      renderDone({ saved: true, respId: serverOut.respId || data.clientRespId });
+    } else {
+      // No endpoint, or the server could not be reached: save the file automatically.
+      const ok = downloadPayload(data);
+      renderDone({ saved: false, respId: data.clientRespId, downloaded: ok, data });
     }
   }
-  function fallback(data, msg) {
-    const old = document.getElementById("fallback-box");
-    if (old) old.remove();
-    $("#page").insertAdjacentHTML("beforeend",
-      `<div class="submit-fallback" id="fallback-box"><p>${esc(msg)}</p><button type="button" class="ghost-btn" id="dl_json">${esc(t("submit_download"))}</button></div>`);
-    document.getElementById("dl_json").addEventListener("click", () => {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "mold_survey_response.json";
-      a.click();
-    });
-    document.getElementById("fallback-box").scrollIntoView({ behavior: "smooth", block: "center" });
-    const btn = $("#btn-next");
-    btn.disabled = false;
-    btn.textContent = t("nav_submit");
-  }
-  function renderDone() {
+  function renderDone(res) {
+    res = res || { saved: true };
     state.submitted = true;
     $("#progress-fill").style.width = "100%";
     $("#stepper").innerHTML = "";
     $("#mobile-step").textContent = "";
     $("#btn-back").style.display = "none";
     $("#btn-next").style.display = "none";
+    $("#submit-err").textContent = "";
+
+    let box = "";
+    if (res.saved) {
+      box = `<div class="saved-box ok">${esc(fmt(t("done_saved"), { id: res.respId || "" }))}</div>`;
+    } else {
+      const subject = encodeURIComponent(fmt(t("mail_subject"), { id: res.respId || "" }));
+      const body = encodeURIComponent(fmt(t("mail_body"), { id: res.respId || "" }));
+      box = `<div class="saved-box warn">
+          <p>${esc(res.downloaded ? fmt(t("done_local_saved"), { id: res.respId || "" }) : t("done_local_failed"))}</p>
+          <a class="ghost-btn" href="mailto:${esc(CFG.CONTACT_EMAIL)}?subject=${subject}&body=${body}">${esc(t("done_mail_btn"))}</a>
+          <button type="button" class="ghost-btn" id="dl_json">${esc(t("submit_download"))}</button>
+          ${CFG.ENDPOINT ? `<button type="button" class="ghost-btn" id="retry_send">${esc(t("done_retry_btn"))}</button>` : ""}
+          <div class="q-err" id="retry-msg"></div>
+        </div>`;
+    }
+
     $("#page").innerHTML = `<h1>${esc(t("done_heading"))}</h1>
+      ${box}
       <p>${esc(t("done_p1"))}</p>
       <p>${esc(t("done_p2"))}<a href="${esc(CFG.DEMO_URL)}" target="_blank" rel="noopener">${esc(CFG.DEMO_URL)}</a></p>
       <p>${esc(t("done_p3"))}</p>`;
+
+    const dl = document.getElementById("dl_json");
+    if (dl) dl.addEventListener("click", () => downloadPayload(res.data));
+    const retry = document.getElementById("retry_send");
+    if (retry) retry.addEventListener("click", async () => {
+      retry.disabled = true;
+      retry.textContent = t("submitting");
+      const out = await postWithRetry(res.data, 2);
+      if (out) {
+        try { localStorage.removeItem(STORE_KEY); } catch (e) { }
+        renderDone({ saved: true, respId: out.respId || res.respId });
+      } else {
+        retry.disabled = false;
+        retry.textContent = t("done_retry_btn");
+        document.getElementById("retry-msg").textContent = t("done_retry_failed");
+      }
+    });
+
     window.scrollTo(0, 0);
     window.removeEventListener("beforeunload", warnUnload);
   }
