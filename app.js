@@ -265,6 +265,7 @@
             <div class="q-err"></div>
           </div>
           <div class="q" data-q="verb">${qhead(t("verb_q"), true)}${verbRows}<div class="q-err"></div></div>` +
+          textarea("q_unverbal", { label: t("unverbal_q"), note: t("unverbal_note"), rows: 3 }) +
           textarea("r_contrast", { req: false, label: t("contrast_q"), note: t("contrast_note"), rows: 2 }) +
           `<div class="lock-warning ${locked ? "locked-note" : ""}" id="recall-lock-note">${esc(locked ? t("sp_recall_locked") : t("wz_recall_lock_warning"))}</div>`;
       },
@@ -275,6 +276,7 @@
           const filled = n === 1 || String(get("r_p" + n) || "").trim().length > 0;
           if (filled && get("r_v" + n) === undefined && miss.indexOf("verb") < 0) miss.push("verb");
         });
+        if (!String(get("q_unverbal") || "").trim()) miss.push("q_unverbal");
         return miss;
       },
       afterRender() { applyLockToPage(); },
@@ -392,7 +394,6 @@
       id: "s6", label: () => t("step_s6"), subCount: 1,
       render() {
         return `<h2>${esc(t("s6_heading"))}</h2><p>${esc(t("s6_intro"))}</p>` +
-          textarea("q_unverbal", { label: t("unverbal_q"), note: t("unverbal_note"), rows: 3 }) +
           textarea("q_askedfix", { req: false, label: t("askedfix_q"), rows: 2 }) +
           radios("q_bottleneck", t("bottleneck_opts"), { label: t("bottleneck_q") }) +
           textarea("q_converge", { req: false, label: t("converge_q"), rows: 2 }) +
@@ -401,7 +402,6 @@
       },
       validate() {
         const miss = [];
-        if (!String(get("q_unverbal") || "").trim()) miss.push("q_unverbal");
         if (get("q_bottleneck") === undefined) miss.push("q_bottleneck");
         if (!String(get("q_ai_ok") || "").trim()) miss.push("q_ai_ok");
         if (!String(get("q_human_must") || "").trim()) miss.push("q_human_must");
