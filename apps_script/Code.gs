@@ -51,9 +51,9 @@ function getSheet_(ss, name, headers) {
 }
 
 var RESP_HEADERS = [
-  "respId", "submittedAt", "startedAt", "lang", "src", "version",
+  "respId", "submittedAt", "startedAt", "recallLockedAt", "lang", "src", "version",
   "totalMinutes", "cardOrder", "honeypot", "nFiles", "fileLinks",
-  "answers_json", "pageTimes_json", "ua", "screen",
+  "answers_json", "ua", "screen",
 ];
 var EMAIL_HEADERS = ["respId", "submittedAt", "email", "ack", "ack_name", "notify", "next_round"];
 
@@ -92,18 +92,17 @@ function doPost(e) {
 
     var totalMin = "";
     try {
-      var ms = 0;
-      var pt = data.pageTimesMs || {};
-      for (var p in pt) ms += pt[p];
-      totalMin = Math.round(ms / 6000) / 10;
+      if (data.startedAt && data.submittedAt) {
+        totalMin = Math.round((new Date(data.submittedAt) - new Date(data.startedAt)) / 6000) / 10;
+      }
     } catch (te) { }
 
     var ss = getSpreadsheet_();
     var respSh = getSheet_(ss, "responses", RESP_HEADERS);
     respSh.appendRow([
-      respId, data.submittedAt || "", data.startedAt || "", data.lang || "", data.src || "", data.version || "",
+      respId, data.submittedAt || "", data.startedAt || "", data.recallLockedAt || "", data.lang || "", data.src || "", data.version || "",
       totalMin, JSON.stringify(data.cardOrder || []), data.honeypot || "", files.length, fileLinks.join(" "),
-      JSON.stringify(rest), JSON.stringify(data.pageTimesMs || {}), data.ua || "", data.screen || "",
+      JSON.stringify(rest), data.ua || "", data.screen || "",
     ]);
 
     var emailSh = getSheet_(ss, "emails", EMAIL_HEADERS);

@@ -25,6 +25,14 @@ window.I18N = {
     resume_discard: "처음부터 다시 시작",
     progress: "진행",
 
+    // ---------- 단일 페이지 안내 ----------
+    sp_flow_note: "위에서 아래로 순서대로 답해 주세요. 특히 3번(먼저, 여러분이 본 것)은 4번의 패턴 카드를 보기 전에 먼저 적어 주세요. 카드를 보기 시작하면 3번의 답은 잠깁니다.",
+    sp_recall_intro: "아래 4번 섹션에서 저희가 찾은 패턴들을 보여 드립니다. 그 전에, 여러분이 먼저 떠올린 것을 듣고 싶습니다. 저희 예시를 보고 나면 생각이 그쪽으로 끌려가기 때문에, 이 문항의 답이 저희에게 가장 값진 자료입니다.",
+    sp_recall_lock_warning: "⚠ 아래 패턴 카드에 답하기 시작하면 이 섹션의 답은 잠겨서 수정할 수 없습니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다.",
+    sp_recall_locked: "🔒 패턴 카드를 보기 시작해서 이 섹션의 답은 잠겼습니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다.",
+    sp_cards_note: "저희가 165편의 완전 AI 생성 논문에서 실측한 8가지입니다. 제시 순서는 방문자마다 무작위입니다. 각 카드마다 세 가지만 답해 주세요.",
+    sp_submit_err: "아직 답하지 않은 필수 문항이 {n}개 있습니다. 표시된 곳을 확인해 주세요.",
+
     // ---------- S0 동의 ----------
     s0_heading: "AI가 수행한 연구는 어떤 흔적을 남기는가",
     s0_p1: "논문을 읽다가 “이거 AI가 쓴 것 같은데” 싶은데, 정작 어디가 그런지 딱 짚어 말하기는 어려웠던 적 있으신가요? 어렵게 짚어서 고쳐 달라고 했는데도, 그 느낌만 그대로 남아 있던 적은요?",
@@ -230,6 +238,13 @@ window.I18N = {
     resume_notice: "We restored your earlier draft. You can continue where you left off.",
     resume_discard: "Start over",
     progress: "Progress",
+
+    sp_flow_note: "Please answer top to bottom. In particular, fill in section 3 (in your own words) before looking at the pattern cards in section 4 — once you start on the cards, section 3 locks.",
+    sp_recall_intro: "Section 4 below shows the patterns we found. Before that, we want to hear what comes to your mind first. Once you see our examples your thinking will be pulled toward them, so this question is the most valuable data in the survey.",
+    sp_recall_lock_warning: "⚠ Once you start answering the pattern cards below, this section locks and can no longer be edited. This preserves answers uninfluenced by our examples.",
+    sp_recall_locked: "🔒 This section is locked because you started on the pattern cards. This preserves answers uninfluenced by our examples.",
+    sp_cards_note: "These are 8 patterns we measured on 165 fully AI-generated papers. The order is randomized per visitor. Just three quick answers per card.",
+    sp_submit_err: "There are {n} required questions still unanswered. Please check the highlighted spots.",
 
     s0_heading: "What traces does AI-conducted research leave behind?",
     s0_p1: "Have you ever read a paper, thought “an AI wrote this,” and then not been able to say what gave it away? Or said exactly what was wrong, and watched the feeling survive the revision?",

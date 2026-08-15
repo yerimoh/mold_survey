@@ -95,6 +95,14 @@ textarea:focus, input:focus { outline: 2px solid var(--accent); border-color: va
 .verb-lab { font-size: 14px; font-weight: 600; min-width: 64px; padding-top: 9px; }
 .verb-row .opts { flex: 1; min-width: 240px; margin-top: 0; }
 
+.sec-hr { border: none; border-top: 2px solid var(--line); margin: 34px -26px; }
+.flow-note { border: 1px solid var(--accent); background: #f2f6fa; border-radius: 8px; padding: 10px 14px; font-size: 14px; margin: 14px 0; }
+.card-block { border-bottom: 1px dashed var(--line); padding-bottom: 18px; margin-bottom: 18px; }
+.card-idx { font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+.wrap-head { border-top: 1px dashed var(--line); padding-top: 16px; font-size: 17px; }
+textarea.locked { background: #f0f1f4; color: var(--ink-soft); }
+.locked-note { background: #f0f1f4; border-color: var(--line); }
+
 .navrow { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 10px; }
 .nav-btn { font: inherit; padding: 11px 26px; border-radius: 9px; cursor: pointer; border: 1px solid var(--line); }
 .nav-btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); margin-left: auto; }
