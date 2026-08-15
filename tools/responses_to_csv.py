@@ -6,8 +6,9 @@
     python3 tools/responses_to_csv.py inbox/*.eml downloads/*.json -o responses.csv
 
 입력으로 받는 것
-    1) 설문이 만든 응답 JSON 파일 (mold_survey_<접수번호>.json)
-    2) FormSubmit이 보낸 메일을 저장한 파일(.eml/.txt). 본문의 payload_json 값을 자동으로 찾아냅니다.
+    1) **스프레드시트에서 내려받은 CSV** (`파일 > 다운로드 > 쉼표로 구분된 값`, responses 탭) ← 주 경로
+    2) 설문이 만든 응답 JSON 파일 (mold_survey_<접수번호>.json)
+    3) FormSubmit이 보낸 메일을 저장한 파일(.eml/.txt). 본문의 payload_json 값을 자동으로 찾아냅니다.
 
 출력
     - responses.csv : 한 행 = 한 응답, 선택지는 사람이 읽는 라벨로 변환
@@ -56,8 +57,38 @@ def label(key, val):
     return val
 
 
+def from_sheet_csv(path: Path):
+    """Apps Script가 만든 responses 탭 CSV를 응답 dict 목록으로 되돌립니다."""
+    out = []
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        rows = list(csv.DictReader(fh))
+    if not rows or "answers_json" not in rows[0]:
+        return []
+    for r in rows:
+        try:
+            answers = json.loads(r.get("answers_json") or "{}")
+        except Exception:
+            continue
+        try:
+            order = json.loads(r.get("cardOrder") or "[]")
+        except Exception:
+            order = []
+        out.append({
+            "clientRespId": r.get("clientRespId") or r.get("respId", ""),
+            "submittedAt": r.get("submittedAt", ""), "startedAt": r.get("startedAt", ""),
+            "recallLockedAt": r.get("recallLockedAt", ""), "lang": r.get("lang", ""),
+            "src": r.get("src", ""), "cardOrder": order,
+            "honeypot": r.get("honeypot", ""), "answers": answers,
+        })
+    return out
+
+
 def extract_payloads(path: Path):
-    """파일 하나에서 응답 dict를 최대한 뽑아냅니다(JSON 파일이든 메일 본문이든)."""
+    """파일 하나에서 응답 dict를 최대한 뽑아냅니다(시트 CSV / JSON 파일 / 메일 본문)."""
+    if path.suffix.lower() == ".csv":
+        rows = from_sheet_csv(path)
+        if rows:
+            return rows
     raw = path.read_text(errors="replace")
     out = []
     # 1) 응답 JSON 파일 그대로

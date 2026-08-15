@@ -37,28 +37,27 @@ RECRUITMENT.md                     # 모집 문안 (메일/슬랙, ko/en)
 
 ## 배포 절차
 
-> ### ✅ 수집 가동 중 — 응답은 메일로 옵니다
-> 활성화가 끝나서, 제출된 응답이 **yerim.oh@vision.snu.ac.kr 로 한 건에 한 통씩** 도착합니다.
-> (2026-08-15 라이브 제출 테스트 완료. Apps Script 스프레드시트 경로는 아직 미연결 — `ENDPOINTS`의 A에 `/exec` URL을 채우면 그쪽이 주 경로가 되고 메일은 백업으로 내려갑니다.)
+> ### ✅ 수집 가동 중 — 응답은 구글 스프레드시트에 쌓입니다
+> **주 경로**: Apps Script → `bora2267474@gmail.com` 드라이브의 **`mold_survey_responses`** 시트 (2026-08-15 라이브 제출 e2e 확인)
+> **백업**: 위가 응답하지 않을 때만 `yerim.oh@vision.snu.ac.kr` 로 메일 전송 (활성화 완료)
+> 둘 다 안 되면 응답자 브라우저 보류함에 보관 후 자동 재전송. 어느 경우에도 응답은 사라지지 않습니다.
 
 ## 제출된 응답 확인하기
 
-**받는 곳**: 메일함. 제목은 `[Mold Survey] <접수번호>` 이고, 본문에 아래가 들어 있습니다.
+**받는 곳**: 구글 드라이브(`bora2267474@gmail.com`)에 자동 생성된 파일 두 개
 
-| 필드 | 내용 |
-|---|---|
-| `respId` | 접수번호 (보상 지급·문의 대조용) |
-| `email` | 응답자가 적은 보상 수령 메일 |
-| `submittedAt` / `startedAt` | 제출·시작 시각 (둘의 차 = 소요 시간, 4분 미만은 분석 제외) |
-| `src` | 배포 채널 (`snu` / `umn` / `pilot` …) |
-| `payload_json` | **응답 전문**. 카드별 seen/named/acted, 자유회상, 제안 몰드까지 전부 |
+- **`mold_survey_responses` 스프레드시트**
+  - `responses` 탭 — 한 행 = 한 응답. `answers_json`에 응답 전문, `totalMinutes`(4분 미만은 분석 제외), `cardOrder`(제시 순서), `honeypot`(봇 검출)
+  - `emails` 탭 — 접수번호 ↔ 보상 수령 메일. **지급 끝나면 이 탭만 지우면 개인정보 폐기 완료**
+- **`mold_survey_uploads` 폴더** — 응답자가 올린 스크린샷 (파일명 앞에 접수번호)
 
-**표로 바꾸기**: 메일 본문을 파일로 저장한 뒤(또는 응답 JSON 파일을 모아서) 아래를 돌리면
-CSV 한 장과 논문 §3.6용 naming-gap 요약이 바로 나옵니다.
+**표로 바꾸기**: 시트에서 `파일 > 다운로드 > 쉼표로 구분된 값`으로 `responses` 탭을 받은 뒤
 
 ```bash
-python3 tools/responses_to_csv.py inbox/*.eml -o responses.csv
+python3 tools/responses_to_csv.py ~/Downloads/mold_survey_responses*.csv -o responses.csv
 ```
+
+시트 CSV·응답 JSON·저장한 메일 어느 것이든 입력으로 받고, 중복 응답은 접수번호로 걸러집니다.
 
 ```
 === 응답 20건 요약 (논문 §3.6 naming gap) ===
