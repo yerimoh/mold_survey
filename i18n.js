@@ -32,19 +32,19 @@ window.I18N = {
     step_recall: "먼저, 여러분이 본 것",
     step_s3: "저희가 하는 것",
     step_cards: "패턴 카드",
-    step_s5: "새 패턴 제안",
+    step_s5: "패턴 정리하기",
     step_s5b: "코드·실험 기록",
     step_s6: "말이 안 되던 것",
     step_s7: "마무리",
     wz_card_sub: "카드 {i} / {n}",
     wz_mobile_step: "섹션 {i} / {n}",
-    wz_recall_lock_warning: "⚠ 다음으로 넘어가면 이 섹션의 답은 잠기고, 다시 와도 보기만 할 수 있습니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다.",
+    wz_recall_lock_warning: "⚠ 저희가 찾은 패턴 카드를 보기 시작하면 이 섹션과 다음 정리 섹션의 답이 잠깁니다. 그 전까지는 자유롭게 오가며 고치셔도 됩니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다.",
 
     // ---------- 단일 페이지 안내 ----------
     sp_flow_note: "위에서 아래로 순서대로 답해 주세요. 특히 3번(먼저, 여러분이 본 것)은 4번의 패턴 카드를 보기 전에 먼저 적어 주세요. 카드를 보기 시작하면 3번의 답은 잠깁니다.",
     sp_recall_intro: "아래 4번 섹션에서 저희가 찾은 패턴들을 보여 드립니다. 그 전에, 여러분이 먼저 떠올린 것을 듣고 싶습니다. 저희 예시를 보고 나면 생각이 그쪽으로 끌려가기 때문에, 이 문항의 답이 저희에게 가장 값진 자료입니다.",
     sp_recall_lock_warning: "⚠ 아래 패턴 카드에 답하기 시작하면 이 섹션의 답은 잠겨서 수정할 수 없습니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다.",
-    sp_recall_locked: "🔒 패턴 카드를 보기 시작해서 이 섹션의 답은 잠겼습니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다.",
+    sp_recall_locked: "🔒 패턴 카드를 보기 시작해서 이 섹션의 답은 잠겼습니다. 저희 예시에 영향받지 않은 답을 보존하기 위해서입니다. 새로 떠오른 것은 카드 마지막 페이지에 적어 주세요.",
     sp_cards_note: "저희가 165편의 완전 AI 생성 논문에서 실측한 8가지입니다. 제시 순서는 방문자마다 무작위입니다. 각 카드마다 세 가지만 답해 주세요.",
     sp_submit_err: "아직 답하지 않은 필수 문항이 {n}개 있습니다. 표시된 곳을 확인해 주세요.",
 
@@ -95,7 +95,9 @@ window.I18N = {
 
     // ---------- S2b 자유 회상 ----------
     s2b_heading: "3. 먼저, 여러분이 본 것",
-    s2b_intro: "다음 페이지부터 저희가 찾은 패턴들을 보여 드립니다. 그 전에, 여러분이 먼저 떠올린 것을 듣고 싶습니다. 저희 예시를 보고 나면 생각이 그쪽으로 끌려가기 때문에, 이 페이지의 답이 저희에게 가장 값진 자료입니다.",
+    s2b_intro: "뒤에서 저희가 찾은 것들을 보여 드립니다. 그 전에, 여러분이 먼저 떠올린 것을 듣고 싶습니다. 저희 예시를 보고 나면 생각이 그쪽으로 끌려가기 때문에, 이 페이지의 답이 저희에게 가장 값진 자료입니다.",
+    mold_def_title: "저희가 찾는 것: 몰드(mold)",
+    mold_def_body: "AI가 수행한 연구가 논문에 남기는 흔적 중, 한 편에서 우연히 생긴 실수가 아니라 여러 논문에서 되풀이되어 나타나는 것을 저희는 몰드라고 부릅니다. 문장이 어색하다거나 단어 선택이 이상하다는 것과는 다릅니다. 오히려 문장은 다 멀쩡한데, 논문을 덮고 나서 “이건 좀…” 하고 남는 쪽에 가깝습니다. 아래 두 예시가 그런 것들입니다.",
     s2b_ex_note: "감을 잡으실 수 있게 저희가 찾은 것 중 딱 두 개만 예시로 보여 드립니다.",
     ex1_title: "예시 1. 서론이 결과를 미리 보여주지 않는다",
     ex1_desc: "서론을 배경·선행연구·한계·방법·결과·기여로 쪼개서, 논증이 어느 칸을 거쳐 이어지는지 그린 것입니다. 왼쪽은 AI가 처음부터 끝까지 수행한 논문입니다. 결과 칸을 한 번도 지나지 않고, 방법을 약속한 채 끝납니다. 오른쪽은 같은 주제의 사람 논문이고 한계를 짚은 뒤 결과 다섯 개를 서론에서 먼저 꺼냅니다. 한 문단만 보면 드러나지 않고 서론 전체를 놓고 봐야 보입니다.",
@@ -123,7 +125,7 @@ window.I18N = {
     s3_more: "더 보고 싶으시면: ",
 
     // ---------- S4 카드 ----------
-    s4_heading: "4. 저희가 찾은 패턴들",
+    s4_heading: "5. 저희가 찾은 패턴들",
     s4_note: "카드 {i} / {n} · 제시 순서는 무작위입니다.",
     s4_img_caption: "왼쪽: AI가 처음부터 끝까지 수행한 논문 · 오른쪽: 같은 주제의 사람 논문",
     seen_q: "이 패턴을 실제로 본 적이 있습니까?",
@@ -191,8 +193,11 @@ window.I18N = {
     doubt_note: "“없다”고 적으셔도 됩니다. 이유가 있다면 짧게 함께 적어 주세요.",
 
     // ---------- S5 신규 제안 ----------
-    s5_heading: "5. 이제 여러분 차례입니다",
-    s5_intro: "앞에서 본 것들과 다른 패턴 중에, 실제로 목격했고 다른 사람도 공감할 만한 것을 제안해 주세요. 하나만 제대로 적어 주셔도 충분합니다.",
+    s5_heading: "4. 방금 적으신 것을 조금만 더 자세히",
+    s5_intro: "바로 앞에서 적어 주신 것 중 가장 확신이 드는 것 하나를 골라, 아래 칸들에 정리해 주세요. 새로 떠오른 다른 것을 적으셔도 좋습니다.",
+    s5_recall_reminder: "방금 적어주신 것",
+    wz_new_idea_q: "카드를 보고 나서 새로 떠오른 패턴이 있습니까?",
+    wz_new_idea_note: "앞에서 적으신 것과 별개로, 저희 카드를 보다가 생각난 것이 있으면 적어 주세요. 없으면 비워 두셔도 됩니다.",
     s5_prize: "프라이즈 기준을 알려 드립니다. 저희는 제안해 주신 패턴을 실제로 AI에게 여러 번 고쳐 쓰게 시켜 봅니다. 그래도 살아남으면 채택입니다. 그래서 아래 세 가지를 봅니다.\n① AI 논문과 사람 논문을 실제로 가르는가\n② 한 문단만 봐서는 안 보이고 논문 전체를 봐야 보이는가\n③ “고쳐 써라”는 지시를 반복해도 사라지지 않는가\n채택되면 {prize}를 드리고, 원하시면 논문 감사의 글과 공개 Mold Hub의 contributor 목록에 성함을 올려 드립니다.",
     cand1_heading: "후보 1",
     cand2_heading: "후보 2 (선택)",
@@ -309,18 +314,18 @@ window.I18N = {
     step_recall: "In your own words",
     step_s3: "What we do",
     step_cards: "Pattern cards",
-    step_s5: "Propose a pattern",
+    step_s5: "Flesh it out",
     step_s5b: "Code & records",
     step_s6: "Beyond words",
     step_s7: "Wrap-up",
     wz_card_sub: "Card {i} / {n}",
     wz_mobile_step: "Section {i} / {n}",
-    wz_recall_lock_warning: "⚠ Once you continue, this section locks — you can revisit it but only to view. This preserves answers uninfluenced by our examples.",
+    wz_recall_lock_warning: "⚠ This section and the next one lock once you start on our pattern cards. Until then you can move back and forth freely. This preserves answers uninfluenced by our examples.",
 
     sp_flow_note: "Please answer top to bottom. In particular, fill in section 3 (in your own words) before looking at the pattern cards in section 4 — once you start on the cards, section 3 locks.",
     sp_recall_intro: "Section 4 below shows the patterns we found. Before that, we want to hear what comes to your mind first. Once you see our examples your thinking will be pulled toward them, so this question is the most valuable data in the survey.",
     sp_recall_lock_warning: "⚠ Once you start answering the pattern cards below, this section locks and can no longer be edited. This preserves answers uninfluenced by our examples.",
-    sp_recall_locked: "🔒 This section is locked because you started on the pattern cards. This preserves answers uninfluenced by our examples.",
+    sp_recall_locked: "🔒 This section is locked because you started on the pattern cards. This preserves answers uninfluenced by our examples. Anything new can go on the last card page.",
     sp_cards_note: "These are 8 patterns we measured on 165 fully AI-generated papers. The order is randomized per visitor. Just three quick answers per card.",
     sp_submit_err: "There are {n} required questions still unanswered. Please check the highlighted spots.",
 
@@ -367,7 +372,9 @@ window.I18N = {
     dlinks_note: "arXiv, OpenReview, or GitHub links are fine. Please do not link unpublished or under-review manuscripts.",
 
     s2b_heading: "3. First, in your own words",
-    s2b_intro: "Starting from the next page we will show you the patterns we found. Before that, we want to hear what comes to your mind first. Once you see our examples your thinking will be pulled toward them, so this page is the most valuable data in the survey.",
+    s2b_intro: "Later on we will show you what we found. Before that, we want to hear what comes to your mind first. Once you see our examples your thinking will be pulled toward them, so this page is the most valuable data in the survey.",
+    mold_def_title: "What we are after: a mold",
+    mold_def_body: "We use the word mold for a trace that AI-conducted research leaves in a paper — not a one-off slip in a single paper, but something that keeps recurring across papers. It is not about awkward sentences or odd word choices. If anything, every sentence reads fine, and the thing that stays with you arrives only after you close the paper. The two examples below are that kind of thing.",
     s2b_ex_note: "To give you a sense of the kind of thing we mean, here are just two examples from our own list.",
     ex1_title: "Example 1. The introduction never previews the results",
     ex1_desc: "We split each introduction into background, prior work, limitations, method, results, and contributions, and drew which of these the argument passes through. Left: a paper conducted end-to-end by AI — the argument never touches the results column and ends on a promise of the method. Right: a human paper on the same topic — it names a limitation and then puts five results up front. You cannot see this in any single paragraph; it only appears when you lay out the whole introduction.",
@@ -393,7 +400,7 @@ window.I18N = {
     s3_p4: "So far we have measured 165 fully AI-generated papers side by side with topic-matched human papers. The next pages show 8 of the patterns.",
     s3_more: "See more: ",
 
-    s4_heading: "4. The patterns we found",
+    s4_heading: "5. The patterns we found",
     s4_note: "Card {i} / {n} · shown in random order.",
     s4_img_caption: "Left: paper conducted end-to-end by AI · Right: human paper on the same topic (labels in the image are in Korean)",
     seen_q: "Have you actually seen this pattern?",
@@ -460,8 +467,11 @@ window.I18N = {
     doubt_q: "Conversely, is there one you think is hard to call AI-specific? Which one, and why?",
     doubt_note: "“None” is a fine answer; add a short reason if you have one.",
 
-    s5_heading: "5. Now it's your turn",
-    s5_intro: "Propose a pattern different from the ones you just saw — something you actually witnessed and expect others to recognize. One well-described candidate is enough.",
+    s5_heading: "4. Now flesh one of those out",
+    s5_intro: "Pick the one you feel surest about from what you just wrote, and fill in the fields below. Writing a different one that just came to mind is also fine.",
+    s5_recall_reminder: "What you just wrote",
+    wz_new_idea_q: "Did any new pattern come to mind while looking at the cards?",
+    wz_new_idea_note: "Separate from what you wrote earlier — anything the cards brought to mind. Leave blank if nothing.",
     s5_prize: "Here is the prize criterion. We take your proposed pattern and actually make an AI rewrite against it, repeatedly. If it survives, it is adopted. We look at three things:\n① Does it actually separate AI papers from human papers?\n② Is it invisible in a single paragraph — visible only across the whole paper?\n③ Does it survive repeated “rewrite this” instructions?\nIf adopted, we send {prize}, and — if you wish — acknowledge you by name in the paper and list you as a contributor of the public Mold Hub.",
     cand1_heading: "Candidate 1",
     cand2_heading: "Candidate 2 (optional)",

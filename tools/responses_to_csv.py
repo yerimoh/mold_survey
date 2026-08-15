@@ -154,6 +154,7 @@ def flatten(p):
         row[f"{m}_acted"] = label("acted", a.get(f"c_{m}_acted"))
     row["top2"] = " | ".join(a.get("w_top2_keys", []) or [])
     row["doubt"] = a.get("w_doubt", "")
+    row["new_idea_after_cards"] = a.get("w_new_idea", "")
     for c in ("m1", "m2"):
         row[f"{c}_name"] = a.get(f"{c}_name", "")
         row[f"{c}_rule"] = a.get(f"{c}_rule", "")

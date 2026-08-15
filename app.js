@@ -91,6 +91,18 @@
   const N_CARDS = CARD_KEYS.length;
   const RECALL_IDS = ["r_p1", "r_p2", "r_p3", "r_contrast"];
 
+  // Free recall and the fleshed-out proposal are both unprimed data: once the cards
+  // start, neither page can be edited any more (revisiting to read is still allowed).
+  function applyLockToPage() {
+    if (!state.meta.recallLockedAt) return;
+    document.querySelectorAll("#page textarea, #page input[type=text], #page input[type=email]")
+      .forEach((el) => { el.readOnly = true; el.classList.add("locked"); });
+    document.querySelectorAll("#page input[type=radio], #page input[type=checkbox]")
+      .forEach((el) => { el.disabled = true; });
+    const note = document.getElementById("recall-lock-note");
+    if (note) { note.textContent = t("sp_recall_locked"); note.classList.add("locked-note"); }
+  }
+
   // ---------- widgets ----------
   function qhead(label, req, note) {
     return `<div class="q-label">${esc(label)} <span class="tag ${req ? "req" : "opt"}">${req ? t("required_mark") : t("optional_mark")}</span></div>` +
@@ -235,6 +247,7 @@
         }).join("");
         return `<h2>${esc(t("s2b_heading"))}</h2>
           <p>${esc(t("s2b_intro"))}</p>
+          <div class="def-box"><div class="def-h">${esc(t("mold_def_title"))}</div><p>${esc(t("mold_def_body"))}</p></div>
           <p class="ex-note">${esc(t("s2b_ex_note"))}</p>
           <div class="example"><h3>${esc(t("ex1_title"))}</h3><img src="assets/cards/card9_arggraph.png" alt=""><p class="ex-desc">${esc(t("ex1_desc"))}</p></div>
           <div class="example"><h3>${esc(t("ex2_title"))}</h3><img src="assets/cards/card10_figurecolor.png" alt=""><p class="ex-desc">${esc(t("ex2_desc"))}</p></div>
@@ -261,18 +274,44 @@
         });
         return miss;
       },
+      afterRender() { applyLockToPage(); },
+    });
+
+    // The respondent's own pattern is fleshed out immediately, while it is still fresh
+    // and before our cards can colour it. Both pages lock together when the cards start.
+    list.push({
+      id: "s5", label: () => t("step_s5"), subCount: 1,
+      render() {
+        const R = CFG.REWARD[state.lang];
+        const mine = [1, 2, 3].map((n) => String(get("r_p" + n) || "").trim()).filter(Boolean);
+        const reminder = mine.length
+          ? `<div class="recall-reminder"><div class="recall-reminder-h">${esc(t("s5_recall_reminder"))}</div><ul>` +
+            mine.map((x) => `<li>${esc(x)}</li>`).join("") + `</ul></div>`
+          : "";
+        return `<h2>${esc(t("s5_heading"))}</h2>
+          <p>${esc(t("s5_intro"))}</p>
+          ${reminder}
+          <div class="prize-box">${esc(fmt(t("s5_prize"), { prize: R.prize })).replace(/\n/g, "<br>")}</div>
+          <h3 class="cand-head">${esc(t("cand1_heading"))}</h3>` + candidateFields("m1", true) +
+          `<h3 class="cand-head">${esc(t("cand2_heading"))}</h3>` + candidateFields("m2", false) +
+          `<div class="lock-warning ${state.meta.recallLockedAt ? "locked-note" : ""}" id="recall-lock-note">${esc(state.meta.recallLockedAt ? t("sp_recall_locked") : t("wz_recall_lock_warning"))}</div>`;
+      },
+      validate() {
+        const miss = [];
+        if (!String(get("m1_name") || "").trim()) miss.push("m1_name");
+        if (String(get("m1_rule") || "").trim().length < 10) miss.push("m1_rule");
+        if (!(get("m1_where") || []).length) miss.push("m1_where");
+        if (!String(get("m1_count") || "").trim()) miss.push("m1_count");
+        if (!String(get("m1_why") || "").trim()) miss.push("m1_why");
+        if (get("m1_erase") === undefined) miss.push("m1_erase");
+        const any2 = ["m2_rule", "m2_count", "m2_why", "m2_fix", "m2_example"].some((id) => String(get(id) || "").trim()) || (get("m2_where") || []).length || get("m2_erase") !== undefined;
+        if (any2 && !String(get("m2_name") || "").trim()) miss.push("m2_name");
+        return miss;
+      },
       onLeaveForward() {
         if (!state.meta.recallLockedAt) { state.meta.recallLockedAt = new Date().toISOString(); save(); }
       },
-      afterRender() {
-        if (state.meta.recallLockedAt) {
-          RECALL_IDS.forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) { el.readOnly = true; el.classList.add("locked"); }
-          });
-          document.querySelectorAll('input[name^="r_v"]').forEach((el) => { el.disabled = true; });
-        }
-      },
+      afterRender() { applyLockToPage(); },
     });
 
     list.push({
@@ -309,7 +348,8 @@
         const titles = order.map((k) => t("cards")[k].title);
         return `<h2>${esc(t("s4wrap_heading"))}</h2>` +
           checks("w_top2", titles, { label: t("top2_q"), max: 2 }) +
-          textarea("w_doubt", { label: t("doubt_q"), note: t("doubt_note"), rows: 3 });
+          textarea("w_doubt", { label: t("doubt_q"), note: t("doubt_note"), rows: 3 }) +
+          textarea("w_new_idea", { req: false, label: t("wz_new_idea_q"), note: t("wz_new_idea_note"), rows: 3 });
       },
       validate(sub) {
         const miss = [];
@@ -323,30 +363,6 @@
           if (!String(get("w_doubt") || "").trim()) miss.push("w_doubt");
           state.answers.w_top2_keys = (get("w_top2") || []).map((i) => order[i]);
         }
-        return miss;
-      },
-    });
-
-    list.push({
-      id: "s5", label: () => t("step_s5"), subCount: 1,
-      render() {
-        const R = CFG.REWARD[state.lang];
-        return `<h2>${esc(t("s5_heading"))}</h2>
-          <p>${esc(t("s5_intro"))}</p>
-          <div class="prize-box">${esc(fmt(t("s5_prize"), { prize: R.prize })).replace(/\n/g, "<br>")}</div>
-          <h3 class="cand-head">${esc(t("cand1_heading"))}</h3>` + candidateFields("m1", true) +
-          `<h3 class="cand-head">${esc(t("cand2_heading"))}</h3>` + candidateFields("m2", false);
-      },
-      validate() {
-        const miss = [];
-        if (!String(get("m1_name") || "").trim()) miss.push("m1_name");
-        if (String(get("m1_rule") || "").trim().length < 10) miss.push("m1_rule");
-        if (!(get("m1_where") || []).length) miss.push("m1_where");
-        if (!String(get("m1_count") || "").trim()) miss.push("m1_count");
-        if (!String(get("m1_why") || "").trim()) miss.push("m1_why");
-        if (get("m1_erase") === undefined) miss.push("m1_erase");
-        const any2 = ["m2_rule", "m2_count", "m2_why", "m2_fix", "m2_example"].some((id) => String(get(id) || "").trim()) || (get("m2_where") || []).length || get("m2_erase") !== undefined;
-        if (any2 && !String(get("m2_name") || "").trim()) miss.push("m2_name");
         return miss;
       },
     });
