@@ -354,7 +354,8 @@
         return `<h2>${esc(t("s4wrap_heading"))}</h2>` +
           checks("w_top2", titles, { label: t("top2_q"), max: 2 }) +
           textarea("w_doubt", { label: t("doubt_q"), note: t("doubt_note"), rows: 3 }) +
-          textarea("w_new_idea", { req: false, label: t("wz_new_idea_q"), note: t("wz_new_idea_note"), rows: 3 });
+          textarea("w_new_idea", { req: false, label: t("wz_new_idea_q"), note: t("wz_new_idea_note"), rows: 3 }) +
+          radios("q_bottleneck", t("bottleneck_opts"), { label: t("bottleneck_q"), note: t("bottleneck_note") });
       },
       validate(sub) {
         const miss = [];
@@ -366,6 +367,7 @@
         } else {
           if (!(get("w_top2") || []).length) miss.push("w_top2");
           if (!String(get("w_doubt") || "").trim()) miss.push("w_doubt");
+          if (get("q_bottleneck") === undefined) miss.push("q_bottleneck");
           state.answers.w_top2_keys = (get("w_top2") || []).map((i) => order[i]);
         }
         return miss;
@@ -389,25 +391,6 @@
         },
       });
     }
-
-    list.push({
-      id: "s6", label: () => t("step_s6"), subCount: 1,
-      render() {
-        return `<h2>${esc(t("s6_heading"))}</h2><p>${esc(t("s6_intro"))}</p>` +
-          textarea("q_askedfix", { req: false, label: t("askedfix_q"), rows: 2 }) +
-          radios("q_bottleneck", t("bottleneck_opts"), { label: t("bottleneck_q") }) +
-          textarea("q_converge", { req: false, label: t("converge_q"), rows: 2 }) +
-          textinput("q_ai_ok", { label: t("ai_ok_q") }) +
-          textinput("q_human_must", { label: t("human_must_q") });
-      },
-      validate() {
-        const miss = [];
-        if (get("q_bottleneck") === undefined) miss.push("q_bottleneck");
-        if (!String(get("q_ai_ok") || "").trim()) miss.push("q_ai_ok");
-        if (!String(get("q_human_must") || "").trim()) miss.push("q_human_must");
-        return miss;
-      },
-    });
 
     list.push({
       id: "s7", label: () => t("step_s7"), subCount: 1,
