@@ -10,8 +10,9 @@
 1. https://script.google.com 접속 (응답을 받을 구글 계정으로 로그인된 상태여야 합니다)
 2. 왼쪽 위 **`+ 새 프로젝트`** 클릭
 3. 가운데 코드창에 이미 들어 있는 내용(`function myFunction() {...}`)을 **전부 지우기**
-4. 아래 주소를 열어 나오는 코드를 **전체 복사해서 붙여넣기**
-   https://raw.githubusercontent.com/yerimoh/mold_survey/main/apps_script/Code.gs
+4. **코드 전체를 복사해서 붙여넣기.** 둘 중 편한 쪽으로 여세요.
+   - 내 컴퓨터의 파일: `Science_benchmark/mold_survey/apps_script/Code.gs` (에디터에서 열어 전체 선택 → 복사)
+   - 웹: https://github.com/yerimoh/mold_survey/blob/main/apps_script/Code.gs (오른쪽 위 복사 아이콘)
 5. `Ctrl+S` (맥은 `⌘+S`)로 저장. 프로젝트 이름을 물으면 아무거나 (예: `mold_survey_collector`)
 
 ## 2. 웹 앱으로 배포하기
@@ -49,11 +50,12 @@
 `Code.gs`가 바뀌면 **붙여넣기만으로는 반영되지 않습니다.** 새 버전으로 다시 배포해야 합니다. URL은 그대로입니다.
 
 1. https://script.google.com → 해당 프로젝트 열기
-2. 코드창 내용을 전부 지우고 최신 코드 붙여넣기 →
-   https://raw.githubusercontent.com/yerimoh/mold_survey/main/apps_script/Code.gs
+2. 코드창 내용을 전부 지우고 최신 코드 붙여넣기
+   (`mold_survey/apps_script/Code.gs` 또는 https://github.com/yerimoh/mold_survey/blob/main/apps_script/Code.gs )
 3. `Ctrl+S` 저장
 4. **`배포` → `배포 관리` → 연필(수정) → `버전`을 `새 버전`으로 → `배포`**
-5. 웹 앱 URL을 새로고침해 `{"ok":true}` 확인
+5. 웹 앱 URL을 새로고침해 확인. **`"schema":97` 이 보이면 최신 코드가 반영된 것**입니다.
+   `{"ok":true,"service":...}` 만 나오고 schema가 없으면 아직 예전 코드가 서비스 중입니다(4번을 다시 하세요).
 
 열 구성이 바뀌면 기존 `responses` 탭은 `responses_old_<날짜시각>` 으로 **자동 보관**되고,
 새 헤더로 새 탭이 만들어집니다. 예전 응답은 지워지지 않습니다.

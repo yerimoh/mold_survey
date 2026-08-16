@@ -243,7 +243,16 @@ function doPost(e) {
 }
 
 // 상태 확인용: 웹 앱 URL을 브라우저로 열면 ok가 보입니다.
+// schema 값으로 "지금 배포된 코드가 어느 버전인지"를 밖에서 확인할 수 있습니다.
+// (한 문항 = 한 열 버전이면 97, 예전 answers_json 한 칸 버전이면 이 필드 자체가 없습니다)
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: "mold_survey collector" }))
-    .setMimeType(ContentService.MimeType.JSON);
+  var info = { ok: true, service: "mold_survey collector", schema: headers_().length };
+  try {
+    var sh = getSpreadsheet_().getSheetByName("responses");
+    if (sh) {
+      info.sheetCols = sh.getLastColumn();
+      info.rows = Math.max(0, sh.getLastRow() - 1);
+    }
+  } catch (e) { }
+  return ContentService.createTextOutput(JSON.stringify(info)).setMimeType(ContentService.MimeType.JSON);
 }
