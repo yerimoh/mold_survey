@@ -47,7 +47,9 @@ RECRUITMENT.md                     # 모집 문안 (메일/슬랙, ko/en)
 **받는 곳**: 구글 드라이브(`bora2267474@gmail.com`)에 자동 생성된 파일 두 개
 
 - **`mold_survey_responses` 스프레드시트**
-  - `responses` 탭 — 한 행 = 한 응답. `answers_json`에 응답 전문, `totalMinutes`(4분 미만은 분석 제외), `cardOrder`(제시 순서), `honeypot`(봇 검출)
+  - `responses` 탭 — 한 행 = 한 응답, **한 문항 = 한 열**(총 97열). 선택지는 번호가 아니라 라벨로 저장되어
+    시트만 열어도 바로 읽힙니다(예: `역할` = 박사과정, `사용도구` = ChatGPT | Claude, `섹션상호참조_명명` = 느낌만 있었다).
+    앞쪽에 접수번호·소요분·채널·카드순서·honeypot, 맨 뒤에 원본 `answers_json`이 함께 남습니다.
   - `emails` 탭 — 접수번호 ↔ 보상 수령 메일. **지급 끝나면 이 탭만 지우면 개인정보 폐기 완료**
 - **`mold_survey_uploads` 폴더** — 응답자가 올린 스크린샷 (파일명 앞에 접수번호)
 
